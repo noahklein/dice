@@ -23,6 +23,7 @@ bodies_update :: proc(dt: f32) {
     }
 }
 
+colliders: [dynamic]Collider
 
 bodies_fixed_update :: proc() {
     for &body in bodies {
@@ -38,6 +39,17 @@ bodies_fixed_update :: proc() {
             ent.pos.y = floor
             body.vel.y *= -0.8
         }
+    }
+
+    // 1. Get list of mesh vertices.
+    // 2. Transform vertices with matrix and build colliders.
+    // 3. N^2 loop to check collisions with GJK and compile a list.
+    // 4. Resolve collisions.
+    clear(&colliders)
+    for body in bodies {
+        // ent := entity.get(body.entity_id)
+
+
     }
 }
 

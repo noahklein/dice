@@ -4,69 +4,125 @@ import glm "core:math/linalg/glsl"
 
 COLLIDER_MAX_VERTICES :: 12
 
-Simplex :: [4]glm.vec3
-
 Collider :: struct {
     vertices: [COLLIDER_MAX_VERTICES]glm.vec3,
     vertex_count: int,
 }
 
+Simplex :: struct {
+    points: [4]glm.vec3,
+    size: int,
+}
+
+simplex_set :: proc(s: ^Simplex, points: ..glm.vec3) {
+    s.size = len(points)
+    for p, i in points do s.points[i] = p
+}
+
+simplex_push_front :: proc(s: ^Simplex, point: glm.vec3) {
+    s.points = {point, s.points[0], s.points[1], s.points[2]}
+    s.size = min(s.size, 4)
+}
+
 gjk_is_colliding :: proc(a, b: Collider) -> bool {
-    a_center, b_center := average_point(a), average_point(b)
-    dir := a_center - b_center // Initial direction to check.
-
-    if dir == 0 do dir.x = 1 // Set to any arbitrary axis.
-
-
     simplex: Simplex
-    simplex[0] = support(a, b, dir)
-    dir = -simplex[0] // New direction is towards the origin.
+    simplex_push_front(&simplex, support(a, b, {1, 0, 0}))
+    dir := -simplex.points[0]
 
-    i: int
     for {
-        i += 1
-
         sup := support(a, b, dir)
-        if glm.dot(sup, dir) <= 0 {
+        if glm.dot(sup, dir) < 0 {
             return false
         }
+        simplex_push_front(&simplex, sup)
 
-        simplex[i] = sup
-
-        switch i {
-        case 2: // Line
-            a, b := simplex[0], simplex[1]
-            ab := b - a
-            ao := 0 - a
-
-            if same_direction(ab, ao) {
-                dir = triple_cross(ab, ao, ab)
-            } else {
-                i -= 1
-                dir = ao
-            }
-        case 3: // Triangle
-            a, b, c := simplex[0], simplex[1], simplex[2]
-            ab := b - a
-            ac := c - a
-            ao := 0 - a
-
-            abc := glm.cross(ab, ac)
-            if same_direction(ao, glm.cross(abc, ac)) {
-                if same_direction(ac, ao) {
-                    i -= 1
-                    dir = triple_cross(ac, ao, ac)
-                    continue
-                } else {
-
-                }
-            }
-            
-        case 4: // Tetrahedron
-
-        case: panic("GJK too many iterations")
+        if do_simplex(&simplex, &dir) {
+            return true
         }
     }
+}
+
+do_simplex :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
+    switch simplex.size {
+        case 2: return gjk_line       (simplex, dir)
+        case 3: return gjk_triangle   (simplex, dir)
+        case 4: return gjk_tetrahedron(simplex, dir)
+    }
+
+    panic("Unexpected number of simplex points")
+}
+
+gjk_line :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
+    a, b := simplex.points[0], simplex.points[1]
+    ab := b - a
+    ao :=   - a
+
+    if same_direction(ab, ao) {
+        dir^ = glm.vectorTripleProduct(ab, ao, ab)
+    } else {
+        simplex_set(simplex, a)
+        dir^ = ao
+    }
+
+    return false
+}
+
+gjk_triangle :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
+    a, b, c := simplex.points[0], simplex.points[1], simplex.points[2]
+    ab := b - a
+    ac := c - a
+    ao :=   - a
+
+    abc := glm.cross(ab, ac)
+
+    if same_direction(glm.cross(abc, ac), ao) {
+        if same_direction(ac, ao) {
+            simplex_set(simplex, a, c)
+            dir^ = glm.vectorTripleProduct(ac, ao, ac)
+        } else {
+            simplex_set(simplex, a, b)
+            return gjk_line(simplex, dir)
+        }
+    } else {
+        if same_direction(glm.cross(ab, abc), ao) {
+            simplex_set(simplex, a, b)
+            return gjk_line(simplex, dir)
+        } else if same_direction(abc, ao) {
+            dir^ = abc
+        } else {
+            simplex_set(simplex, a, c, b)
+            dir^ = -abc
+        }
+    }
+
+    return false
+}
+
+gjk_tetrahedron :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
+    a, b, c, d := simplex.points[0], simplex.points[1], simplex.points[2], simplex.points[3]
+    ab := b - a
+    ac := c - a
+    ad := d - a
+    ao :=   - a
+
+    abc := glm.cross(ab, ac)
+    acd := glm.cross(ac, ad)
+    adb := glm.cross(ad, ab)
+
+    if same_direction(abc, ao) {
+        simplex_set(simplex, a, b, c)
+        return gjk_triangle(simplex, dir)
+    }
+    if same_direction(acd, ao) {
+        simplex_set(simplex, a, c, d)
+        return gjk_triangle(simplex, dir)
+    }
+    if same_direction(adb, ao) {
+        simplex_set(simplex, a, d, b)
+        return gjk_triangle(simplex, dir)
+    }
+
+    return true
 }
 
 same_direction :: proc(a, b: glm.vec3) -> bool {
@@ -100,8 +156,4 @@ furthest_point :: proc(c: Collider, dir: glm.vec3) -> glm.vec3 {
 average_point :: proc(c: Collider) -> (avg: glm.vec3) {
     for i in 0..<c.vertex_count do avg += c.vertices[i]
     return avg / f32(c.vertex_count)
-}
-
-triple_cross :: proc(a, b, c: glm.vec3) -> glm.vec3 {
-    return glm.cross(glm.cross(a, b), c)
 }
