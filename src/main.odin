@@ -77,8 +77,6 @@ main :: proc() {
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
         gl.Enable(gl.DEPTH_TEST)
 
-        
-
         gl.UseProgram(shader.id)
         render.setMat4(shader.id, "uView", &view[0, 0])
         render.setMat4(shader.id, "uProjection", &projection[0, 0])
@@ -100,7 +98,7 @@ init_entities :: proc() {
     append(&physics.bodies, physics.Body{ entity_id = floor})
 
     box1 := entity.new(pos = {0, 20, 0})
-    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 0.25}})
+    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
     append(&physics.bodies, physics.Body{entity_id = box1 })
 
     box2 := entity.new(pos = {5, 30, 0},  scale = {2, 1, 2})
