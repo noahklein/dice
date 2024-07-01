@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "odin build src -debug -error-pos-style:unix -strict-style",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "echo": true,
+                "focus": false,
+                "panel": "shared",
+                "clear": true,
+            },
+        }
+    ]
+}
