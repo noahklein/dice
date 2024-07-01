@@ -8,6 +8,7 @@ import "core:mem"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
+import "entity"
 import "physics"
 import "render"
 
@@ -15,29 +16,6 @@ GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
 
 main :: proc() {
-    when ODIN_DEBUG {
-        track: mem.Tracking_Allocator
-        mem.tracking_allocator_init(&track, context.allocator)
-        context.allocator = mem.tracking_allocator(&track)
-
-        defer {
-            if len(track.allocation_map) > 0 {
-                fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
-                for _, entry in track.allocation_map {
-                    fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
-                }
-            }
-            if len(track.bad_free_array) > 0 {
-                fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
-                for entry in track.bad_free_array {
-                    fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
-                }
-            }
-            mem.tracking_allocator_destroy(&track)
-        }
-    }
-    defer free_all(context.temp_allocator)
-
     if !glfw.Init() {
         fmt.panicf("Failed to initialize GLFW")
     }
@@ -60,6 +38,7 @@ main :: proc() {
     gl.DepthFunc(gl.LESS)
     gl.Enable(gl.LINE_SMOOTH)
     gl.LineWidth(3)
+    gl.Enable(gl.CULL_FACE)
 
     shader, err := render.shader_load("src/shaders/cube.glsl")
     if err != nil {
@@ -71,16 +50,15 @@ main :: proc() {
         fmt.panicf("Failed to load cube mesh")
     }
 
-    mesh := render.mesh_init(cube_obj)
-    defer render.mesh_deinit(&mesh)
+    mesh := render.renderer_init(cube_obj)
+    defer render.renderer_deinit(&mesh)
 
-    view := glm.mat4LookAt({0, 0, -30}, 0, {0, 1, 0})
+    view := glm.mat4LookAt({-10, 15, -30}, 0, {0, 1, 0})
     projection := glm.mat4Perspective(70, 1600.0/900.0, 0.1, 1000)
 
-    physics.init_bodies()
-    defer physics.deinit_bodies()
-
     prev_time := f32(glfw.GetTime())
+
+    init_entities()
 
     for !glfw.WindowShouldClose(window) {
         defer {
@@ -97,25 +75,39 @@ main :: proc() {
 
         physics.bodies_update(dt)
 
-
         gl.ClearColor(0, 0, 0, 1)
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
         gl.Enable(gl.DEPTH_TEST)
 
-        // gl.BindVertexArray(mesh.vao)
-        // gl.BindBuffer(gl.ARRAY_BUFFER, mesh.vbo)
+        
 
         gl.UseProgram(shader.id)
         render.setMat4(shader.id, "uView", &view[0, 0])
         render.setMat4(shader.id, "uProjection", &projection[0, 0])
 
-
-        for body in physics.bodies {
-            instance := render.Instance{ transform = physics.body_matrix(body) }
-            render.mesh_draw(&mesh, instance)
+        for m in render.meshes {
+            render.renderer_draw(&mesh, {
+                transform = entity.transform(m.entity_id),
+                color = m.color,
+            })
         }
-        render.mesh_flush(&mesh)
+
+        render.renderer_flush(&mesh)
     }
+}
+
+init_entities :: proc() {
+    floor := entity.new(scale = {100, 0, 100})
+    append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
+    append(&physics.bodies, physics.Body{ entity_id = floor})
+
+    box1 := entity.new(pos = {0, 20, 0})
+    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
+    append(&physics.bodies, physics.Body{entity_id = box1 })
+
+    box2 := entity.new(pos = {5, 30, 0},  scale = {2, 1, 2})
+    append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
+    append(&physics.bodies, physics.Body{entity_id = box2, angular_vel = {0, 1, 0} })
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

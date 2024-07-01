@@ -1,9 +1,16 @@
 package render
 
 import gl "vendor:OpenGL"
+import "../entity"
 
-// Mesh renderer
+meshes: [dynamic]Mesh
+
 Mesh :: struct {
+    entity_id: entity.ID,
+    color: [4]f32,
+}
+
+Renderer :: struct {
     name: cstring,
     vao, vbo, ibo: u32,
     verts: []Vertex,
@@ -18,15 +25,14 @@ Vertex :: struct {
 
 Instance :: struct {
     texture: [2]u32,
-    transform: matrix[4, 4]f32,
-    entity_id: i32,
     color: [4]f32,
+    transform: matrix[4, 4]f32,
 }
 
 MAX_INSTANCES :: 30
 
-mesh_init :: proc(obj: Obj) -> Mesh {
-    m := Mesh{
+renderer_init :: proc(obj: Obj) -> Renderer {
+    m := Renderer{
         instances = make([dynamic]Instance, 0, MAX_INSTANCES),
         verts = make([]Vertex, len(obj.faces)),
     }
@@ -61,8 +67,12 @@ mesh_init :: proc(obj: Obj) -> Mesh {
     gl.VertexAttribIPointer(3, 2, gl.UNSIGNED_INT, size_of(Instance), offset_of(Instance, texture))
     gl.VertexAttribDivisor(3, 1)
 
+    gl.EnableVertexAttribArray(4)
+    gl.VertexAttribPointer(4, 4, gl.FLOAT, false, size_of(Instance), offset_of(Instance, color))
+    gl.VertexAttribDivisor(4, 1)
+
     for i in 0..<4 {
-        id := u32(4 + i)
+        id := u32(5 + i)
         gl.EnableVertexAttribArray(id)
         offset := offset_of(Instance, transform) + (uintptr(i * 4) * size_of(f32))
         gl.VertexAttribPointer(id, 4, gl.FLOAT, false, size_of(Instance), offset)
@@ -72,7 +82,7 @@ mesh_init :: proc(obj: Obj) -> Mesh {
     return m
 }
 
-mesh_deinit :: proc(m: ^Mesh) {
+renderer_deinit :: proc(m: ^Renderer) {
     gl.DeleteVertexArrays(1, &m.vao)
     gl.DeleteBuffers(1, &m.vbo)
     gl.DeleteBuffers(1, &m.ibo)
@@ -80,20 +90,15 @@ mesh_deinit :: proc(m: ^Mesh) {
     delete(m.verts)
 }
 
-mesh_draw :: proc(m: ^Mesh, instance: Instance) {
+renderer_draw :: proc(m: ^Renderer, instance: Instance) {
     if len(m.instances) + 1 >= MAX_INSTANCES {
-        mesh_flush(m)
+        renderer_flush(m)
     }
 
     append(&m.instances, instance)
-    //      Instance{
-    //     texture = [2]u32{tex_unit, tiling},
-    //     transform = transform,
-    //     entity_id = entity_id,
-    // })
 }
 
-mesh_flush :: proc(m: ^Mesh) {
+renderer_flush :: proc(m: ^Renderer) {
     if len(m.instances) == 0 {
         return
     }

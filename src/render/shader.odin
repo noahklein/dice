@@ -130,9 +130,6 @@ link :: proc(program: u32) -> ShaderError {
 }
 
 watch :: proc(s: ^Shader) -> ShaderError {
-	now := time.now()._nsec
-	defer s.last_reload = now
-
 	stat, err := os.stat(s.path, context.temp_allocator)
 	if err != os.ERROR_NONE {
 		fmt.eprintln("os.stat error:", err)
@@ -140,6 +137,7 @@ watch :: proc(s: ^Shader) -> ShaderError {
 	}
 
 	if stat.modification_time._nsec >= s.last_reload {
+		s.last_reload = stat.modification_time._nsec
 		new_shader, err := shader_load(s.path)
 		if err != nil {
 			fmt.eprintln("Failed to reload shader:", err)
