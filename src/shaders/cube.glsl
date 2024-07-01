@@ -34,5 +34,5 @@ out vec4 finalColor;
 
 void main() {
     finalColor = color;
-    // finalColor = vec4(normal, 1);
+    // finalColor = color * vec4(texCoord, 1, 1);
 }
