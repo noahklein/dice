@@ -36,8 +36,6 @@ main :: proc() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
-    gl.Enable(gl.LINE_SMOOTH)
-    gl.LineWidth(3)
     gl.Enable(gl.CULL_FACE)
 
     shader, err := render.shader_load("src/shaders/cube.glsl")
@@ -102,7 +100,7 @@ init_entities :: proc() {
     append(&physics.bodies, physics.Body{ entity_id = floor})
 
     box1 := entity.new(pos = {0, 20, 0})
-    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
+    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 0.25}})
     append(&physics.bodies, physics.Body{entity_id = box1 })
 
     box2 := entity.new(pos = {5, 30, 0},  scale = {2, 1, 2})

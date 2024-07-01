@@ -8,6 +8,7 @@ meshes: [dynamic]Mesh
 Mesh :: struct {
     entity_id: entity.ID,
     color: [4]f32,
+    // @TODO: renderer id to support multiple mesh renderers.
 }
 
 Renderer :: struct {
