@@ -2,11 +2,16 @@ package physics
 
 import glm "core:math/linalg/glsl"
 
-COLLIDER_MAX_VERTICES :: 12
+COLLIDER_MAX_VERTICES :: 8
 
-Collider :: struct {
+Shape :: struct {
     vertices: [COLLIDER_MAX_VERTICES]glm.vec3,
     vertex_count: int,
+}
+
+Collider :: struct {
+    using shape: Shape,
+    body_id: int,
 }
 
 Simplex :: struct {
@@ -21,7 +26,7 @@ simplex_set :: proc(s: ^Simplex, points: ..glm.vec3) {
 
 simplex_push_front :: proc(s: ^Simplex, point: glm.vec3) {
     s.points = {point, s.points[0], s.points[1], s.points[2]}
-    s.size = min(s.size, 4)
+    s.size = min(s.size + 1, 4)
 }
 
 gjk_is_colliding :: proc(a, b: Collider) -> bool {
@@ -138,13 +143,13 @@ support :: proc(a, b: Collider, dir: glm.vec3) -> glm.vec3 {
 
 // Get the furthest point on a collider in a given direction.
 furthest_point :: proc(c: Collider, dir: glm.vec3) -> glm.vec3 {
-    max_product := glm.dot(dir, c.vertices[0])
+    max_dist := glm.dot(dir, c.vertices[0])
     furthest := c.vertices[0]
 
     for i in 1..<c.vertex_count {
         v := c.vertices[i]
-        if product := glm.dot(dir, v); product > max_product {
-            max_product = product
+        if dist := glm.dot(dir, v); dist > max_dist {
+            max_dist = dist
             furthest = v
         }
     }

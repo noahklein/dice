@@ -1,5 +1,6 @@
 package physics
 
+import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "../entity"
 
@@ -9,10 +10,15 @@ body_dt_acc: f32
 DT :: 1.0 / 120.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 
+ShapeID :: enum { Box }
+shapes: [ShapeID]Shape
+colliders: [dynamic]Collider
+
 Body :: struct {
     entity_id: entity.ID,
     vel: glm.vec3,
     angular_vel: glm.vec3, 
+    shape: ShapeID,
 }
 
 bodies_update :: proc(dt: f32) {
@@ -23,8 +29,6 @@ bodies_update :: proc(dt: f32) {
     }
 }
 
-colliders: [dynamic]Collider
-
 bodies_fixed_update :: proc() {
     for &body in bodies {
         ent := entity.get(body.entity_id)
@@ -33,23 +37,28 @@ bodies_fixed_update :: proc() {
         body.vel += GRAVITY*DT
         
         ent.orientation += ent.orientation * cross(body.angular_vel) * DT
-
-        floor := 0.5 * ent.scale.y
-        if ent.pos.y < floor {
-            ent.pos.y = floor
-            body.vel.y *= -0.8
-        }
     }
 
-    // 1. Get list of mesh vertices.
-    // 2. Transform vertices with matrix and build colliders.
-    // 3. N^2 loop to check collisions with GJK and compile a list.
-    // 4. Resolve collisions.
     clear(&colliders)
-    for body in bodies {
-        // ent := entity.get(body.entity_id)
+    for body, i in bodies {
+        transform := entity.transform(body.entity_id)
 
+        c := Collider{ body_id = i, shape = shapes[body.shape] }
+        for i in 0..<c.vertex_count {
+            v := c.vertices[i].xyzx
+            v.w = 1
+            c.vertices[i] = (transform * v).xyz
+        }
 
+        append(&colliders, c)
+    }
+
+    for a, i in colliders[:len(bodies) - 1] {
+        for b in colliders[i+1:] {
+            if gjk_is_colliding(a, b) {
+                fmt.println("collision", a.body_id, b.body_id)
+            }
+        }
     }
 }
 

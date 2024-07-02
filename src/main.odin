@@ -3,7 +3,6 @@ package main
 import "base:runtime"
 import "core:fmt"
 import glm "core:math/linalg/glsl"
-import "core:mem"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -51,6 +50,11 @@ main :: proc() {
     mesh := render.renderer_init(cube_obj)
     defer render.renderer_deinit(&mesh)
 
+    physics.shapes[.Box].vertex_count = len(cube_obj.vertices)
+    for v, i in cube_obj.vertices {
+        physics.shapes[.Box].vertices[i] = glm.vec3(v)
+    }
+
     view := glm.mat4LookAt({-10, 15, -30}, 0, {0, 1, 0})
     projection := glm.mat4Perspective(70, 1600.0/900.0, 0.1, 1000)
 
@@ -95,15 +99,15 @@ main :: proc() {
 init_entities :: proc() {
     floor := entity.new(scale = {100, 0, 100})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
-    append(&physics.bodies, physics.Body{ entity_id = floor})
+    append(&physics.bodies, physics.Body{ entity_id = floor, shape = .Box })
 
     box1 := entity.new(pos = {0, 20, 0})
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box1 })
+    append(&physics.bodies, physics.Body{entity_id = box1, shape = .Box })
 
-    box2 := entity.new(pos = {5, 30, 0},  scale = {2, 1, 2})
+    box2 := entity.new(pos = {5, 20, 0},  scale = {2, 1, 2})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box2, angular_vel = {0, 1, 0} })
+    append(&physics.bodies, physics.Body{entity_id = box2, vel = {-1, 0, 0}, angular_vel = {1, 1, 0}, shape = .Box })
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
