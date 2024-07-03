@@ -1,5 +1,6 @@
 package physics
 
+import "core:math"
 import glm "core:math/linalg/glsl"
 
 epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> glm.vec3 {
@@ -23,6 +24,7 @@ epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> glm.vec3 {
     closest_face: int
     for _ in 0..<EPA_MAX_ITER {
         min_dist := glm.dot(faces[0].points[0], faces[0].normal)
+        closest_face = 0
 
         // Find the face that's closest to the origin.
         for f, i in faces {
@@ -72,10 +74,7 @@ epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> glm.vec3 {
         // Reconstruct polytope with support point added.
         for edge in loose_edges {
             if len(faces) >= EPA_MAX_FACES do break
-            face := Face{
-                points = {edge[0], edge[1], sup},
-                normal = glm.normalize(glm.cross(edge[0] - edge[1], edge[0] - sup)),
-            }
+            face := new_face(edge[0], edge[1], sup)
 
             BIAS :: 0.000001
             if glm.dot(face.points[0], face.normal) + BIAS < 0 {
