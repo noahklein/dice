@@ -15,6 +15,7 @@ GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
 
 cursor_hidden: bool
+debug_draw: bool
 
 main :: proc() {
     if !glfw.Init() {
@@ -53,6 +54,8 @@ main :: proc() {
 
     mesh := render.renderer_init(cube_obj)
     defer render.renderer_deinit(&mesh)
+
+    render.shapes_init()
 
     physics.shapes[.Box].vertex_count = len(cube_obj.vertices)
     for v, i in cube_obj.vertices {
@@ -114,6 +117,14 @@ main :: proc() {
         }
 
         render.renderer_flush(&mesh)
+
+        if debug_draw {
+            render.lines_begin(&proj, &view)
+            for c in physics.colliders {
+                render.draw_lines_aabb(c.aabb.min, c.aabb.max)
+            }
+            render.lines_flush()
+        }
     }
 }
 
@@ -141,6 +152,9 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
 	if key == glfw.KEY_ESCAPE && action == glfw.PRESS {
 		glfw.SetWindowShouldClose(window, glfw.TRUE)
 	}
+    if key == glfw.KEY_LEFT_SHIFT && action == glfw.PRESS {
+        debug_draw = !debug_draw
+    }
 }
 
 mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {

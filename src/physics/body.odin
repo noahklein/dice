@@ -67,12 +67,15 @@ bodies_fixed_update :: proc() {
             c.vertices[i] = (transform * v).xyz
         }
 
+        compute_aabb(&c)
+
         append(&colliders, c)
     }
 
     clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
+            aabb_vs_aabb(a.aabb, b.aabb) or_continue
             simplex := gjk_is_colliding(a, b) or_continue
             collision := epa(a, b, simplex)
 
