@@ -33,7 +33,6 @@ main :: proc() {
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetMouseButtonCallback(window, mouse_button_callback)
     glfw.SetCursorPosCallback(window, mouse_callback)
-    glfw.SetInputMode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
     gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
     gl.Enable(gl.BLEND)
@@ -90,6 +89,22 @@ main :: proc() {
         gl.UseProgram(shader.id)
         render.setMat4(shader.id, "uView", &view[0, 0])
         render.setMat4(shader.id, "uProjection", &proj[0, 0])
+        render.setFloat3(shader.id, "uCamPos", cam.pos)
+        render.setStruct(shader.id, "uLight", render.Light, render.Light{
+            position = 5,
+            direction = {0, 0, 1},
+
+            ambient = 0.5,
+            diffuse = 0.5,
+            specular = 0.75,
+
+            constant = 1,
+            linear = 0.09,
+            quadratic = 0.032,
+
+            cutoff = 12.5,
+            outer_cutoff = 17.5,
+        })
 
         for m in render.meshes {
             render.renderer_draw(&mesh, {
@@ -113,7 +128,7 @@ init_entities :: proc() {
 
     box2 := entity.new(pos = {5, 20, 0},  scale = {2, 1, 2})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {0, 0, 0} })
+    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {0.2, 1, 0} })
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

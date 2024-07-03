@@ -172,7 +172,6 @@ setIntArray :: proc(id: u32, name: cstring, count: i32, vals: [^]i32) {
     gl.Uniform1iv(loc(id, name), count, vals)
 }
 
-
 setStruct :: proc(id: u32, name: string, $T: typeid, obj: T) {
 	context.allocator = context.temp_allocator
 

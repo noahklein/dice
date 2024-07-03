@@ -20,7 +20,7 @@ flat out vec4 color;
 void main() {
     pos = vPos;
     texCoord = vTexCoord;
-    normal = vNormal;
+    normal = mat3(transpose(inverse(vTransform))) * vNormal;
     color = vColor;
     gl_Position = uProjection * uView * vTransform * vec4(vPos, 1.0);
 }
@@ -28,15 +28,75 @@ void main() {
 #type fragment
 #version 450 core
 
+struct Light {
+    vec3 position;
+    vec3 direction;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float cutoff;
+    float outerCutoff;
+};
+
 in vec3 pos;
 in vec2 texCoord;
 in vec3 normal;
 flat in vec4 color;
 
+uniform Light uLight;
+uniform vec3 uCamPos;
+
 out vec4 finalColor;
 
+vec3 calcLighting(Light light) {
+    vec3 norm = normalize(normal);
+    vec3 lightDir = normalize(light.position - pos);
+
+    // Diffuse
+    float diff = max(dot(norm, lightDir), 0);
+    vec3 diffuse = light.diffuse * diff;
+
+    // Specular
+    vec3 viewDir = normalize(uCamPos - pos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0), 1); // TODO: replace exponent with material shininess
+    vec3 specular = light.specular * spec;
+
+     // Spotlight (soft edges)
+    float theta = dot(lightDir, normalize(-light.direction));
+    float epsilon  = (light.cutoff - light.outerCutoff);
+    float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
+    diffuse  *= intensity;
+    specular *= intensity;
+
+    // Attenuation
+    float distance    = length(light.position - pos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+    return attenuation * (light.ambient + diffuse + specular);
+}
+
 void main() {
-    finalColor = color;
+    Light light2 = Light(
+        vec3(2),
+        vec3(0, -1, 1),
+
+        vec3(0.5),
+        vec3(0.5),
+        vec3(0.75),
+
+        1, 0.09, 0.032,
+
+        12.5, 17.5
+    );
+    // finalColor = vec4(calcLighting(uLight), 1) * color;
+    finalColor = vec4(calcLighting(light2), 1) * color;
     // finalColor = color * vec4(texCoord, 1, 1);
 }
 
