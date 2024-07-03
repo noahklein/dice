@@ -29,7 +29,7 @@ simplex_push_front :: proc(s: ^Simplex, point: glm.vec3) {
     s.size = min(s.size + 1, 4)
 }
 
-gjk_is_colliding :: proc(a, b: Collider) -> bool {
+gjk_is_colliding :: proc(a, b: Collider) -> (Simplex, bool) {
     simplex: Simplex
     simplex_push_front(&simplex, support(a, b, {1, 0, 0}))
     dir := -simplex.points[0]
@@ -37,12 +37,12 @@ gjk_is_colliding :: proc(a, b: Collider) -> bool {
     for {
         sup := support(a, b, dir)
         if glm.dot(sup, dir) < 0 {
-            return false
+            return {}, false
         }
         simplex_push_front(&simplex, sup)
 
         if do_simplex(&simplex, &dir) {
-            return true
+            return simplex, true
         }
     }
 }

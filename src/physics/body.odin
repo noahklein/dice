@@ -55,9 +55,9 @@ bodies_fixed_update :: proc() {
 
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
-            if gjk_is_colliding(a, b) {
-                fmt.println("collision", a.body_id, b.body_id)
-            }
+            simplex := gjk_is_colliding(a, b) or_continue
+            collision := epa_find_collision(a, b, simplex)
+            fmt.println(collision)
         }
     }
 }
