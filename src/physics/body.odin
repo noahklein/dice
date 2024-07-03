@@ -13,12 +13,19 @@ GRAVITY :: glm.vec3{0, -9.8, 0}
 ShapeID :: enum { Box }
 shapes: [ShapeID]Shape
 colliders: [dynamic]Collider
+collisions: [dynamic]Collision
 
 Body :: struct {
     entity_id: entity.ID,
     vel: glm.vec3,
     angular_vel: glm.vec3, 
+    static: bool,
     shape: ShapeID,
+}
+
+Collision :: struct{
+    a_body_id, b_body_id: int,
+    normal: glm.vec3,
 }
 
 bodies_update :: proc(dt: f32) {
@@ -30,7 +37,7 @@ bodies_update :: proc(dt: f32) {
 }
 
 bodies_fixed_update :: proc() {
-    for &body in bodies {
+    for &body in bodies  {
         ent := entity.get(body.entity_id)
 
         ent.pos += body.vel*DT
@@ -53,12 +60,38 @@ bodies_fixed_update :: proc() {
         append(&colliders, c)
     }
 
+    clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
             simplex := gjk_is_colliding(a, b) or_continue
-            collision := epa_find_collision(a, b, simplex)
+            collision := epa(a, b, simplex)
             fmt.println(collision)
+
+            append(&collisions, Collision{
+                a_body_id = a.body_id, b_body_id = b.body_id,
+                normal = collision,
+            })
         }
+    }
+
+    for col in collisions {
+        a_body, b_body := &bodies[col.a_body_id], &bodies[col.b_body_id]
+
+        a_ent, b_ent := entity.get(a_body.entity_id), entity.get(b_body.entity_id)
+
+
+        // a_body.vel = 0
+        // b_body.vel = 0
+        // if a_body.static && b_body.static {
+        //     continue
+        // } else if a_body.static {
+        //     b_ent.pos += col.normal
+        // } else if b_body.static {
+        //     a_ent.pos -= col.normal
+        // } else {
+        //     a_ent.pos -= col.normal/2
+        //     b_ent.pos += col.normal/2
+        // }
     }
 }
 

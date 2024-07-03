@@ -1,135 +1,104 @@
 package physics
 
-import "core:math"
 import glm "core:math/linalg/glsl"
 
-CollisionPoints :: struct {
-    normal: glm.vec3,
-    depth: f32,
-    colliding: bool,
-}
-
-// Expanding Polytope Algorithm, finds the collision normal.
-epa_find_collision :: proc(a, b: Collider, simplex: Simplex) -> CollisionPoints {
+epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> glm.vec3 {
     context.allocator = context.temp_allocator
 
-    polytope := make([dynamic]glm.vec3, 0, simplex.size)
-    for p in simplex.points do append(&polytope, p)
+    EPA_MAX_FACES :: 64
+    EPA_MAX_ITER  :: EPA_MAX_FACES
+    EPA_MAX_LOOSE_EDGES :: EPA_MAX_FACES / 2
+    EPA_TOLERANCE :: 0.0001
 
-    faces: [dynamic][3]int = {
-        {0, 1, 2},
-        {0, 3, 1},
-        {0, 2, 3},
-        {1, 3, 2},
+    faces := make([dynamic]Face, 0, EPA_MAX_FACES)
+    {
+        // Get initial simplex faces.
+        a, b, c, d := simplex.points[0], simplex.points[1], simplex.points[2], simplex.points[3] 
+        append(&faces, new_face(a, b, c))
+        append(&faces, new_face(a, c, d))
+        append(&faces, new_face(a, d, b))
+        append(&faces, new_face(b, d, c))
     }
 
-    normals, min_face := face_normals(polytope, faces)
+    closest_face: int
+    for _ in 0..<EPA_MAX_ITER {
+        min_dist := glm.dot(faces[0].points[0], faces[0].normal)
 
-    min_normal: glm.vec3
-    min_dist: f32 = math.F32_MAX
-
-    for min_dist == math.F32_MAX {
-        min_normal = normals[min_face].normal
-        min_dist   = normals[min_face].distance
-
-        sup := support(a, b, min_normal)
-        s_dist := glm.dot(min_normal, sup)
-
-        if abs(s_dist - min_dist) <= 0.001 {
-            continue
-        }
-
-        min_dist = math.F32_MAX
-
-        // Build list of unique edges.
-        unique_edges: [dynamic][2]int
-        for i := 0; i < len(normals); i += 1 {
-            if !same_direction(normals[i].normal, sup) {
-                continue
-            }
-
-            f := faces[i]
-            add_if_unique_edge(&unique_edges, f.xy)
-            add_if_unique_edge(&unique_edges, f.yz)
-            add_if_unique_edge(&unique_edges, f.zx)
-
-            faces[i] = pop(&faces)
-            normals[i] = pop(&normals)
-            i -= 1
-        }
-
-        new_faces: [dynamic][3]int
-        for edge in unique_edges {
-            append(&new_faces, [3]int{edge.x, edge.y, len(polytope)})
-        }
-        append(&polytope, sup)
-
-        new_normals, new_min_face := face_normals(polytope, new_faces)
-
-        old_min_dist: f32 = math.F32_MAX
-        for norm, i in normals {
-            if norm.distance < old_min_dist {
-                old_min_dist = norm.distance
-                min_face = i
+        // Find the face that's closest to the origin.
+        for f, i in faces {
+            dist := glm.dot(f.points[0], f.normal)
+            if dist < min_dist {
+                min_dist = dist
+                closest_face = i
             }
         }
 
-        if new_normals[new_min_face].distance < old_min_dist {
-            min_face = new_min_face + len(normals)
+        search_dir := faces[closest_face].normal
+        sup := support(coll_a, coll_b, search_dir)
+
+        if glm.dot(sup, search_dir) - min_dist < EPA_TOLERANCE {
+            return faces[closest_face].normal * glm.dot(sup, search_dir)
         }
 
-        append(&faces,   ..new_faces[:])
-        append(&normals, ..new_normals[:])
-    }
+        loose_edges := make([dynamic][2]glm.vec3, 0, EPA_MAX_LOOSE_EDGES)
+        for face_i := 0; face_i < len(faces); face_i += 1 {
+            f := faces[face_i]
+            if glm.dot(f.normal, sup - f.points[0]) > 0 { // Triangle faces support point.
+                for pa, i in f.points {
+                    pb := f.points[(i + 1) % len(f.points)]
+                    new_edge := [2]glm.vec3{pa, pb}
+                    found_edge: bool
 
-    points := CollisionPoints{
-        normal = min_normal,
-        depth  = min_dist + 0.001,
-        colliding = true,
-    }
+                    // Remove edge from list if it already exists.
+                    for edge, edge_i in loose_edges {
+                        if edge.yx == new_edge {
+                            unordered_remove(&loose_edges, edge_i)
+                            found_edge = true
+                            break
+                        }
+                    }
 
-    return points
-}
+                    if !found_edge {
+                        if len(loose_edges) > EPA_MAX_LOOSE_EDGES do break
+                        append(&loose_edges, new_edge)
+                    }
+                }
 
-face_normals :: proc(polytope: [dynamic]glm.vec3, faces: [dynamic][3]int) -> (normals: [dynamic]CollisionNormal, min_triangle: int) {
-    min_dist: f32 = math.F32_MAX
+                unordered_remove(&faces, face_i)
+                face_i -= 1
+            }
+        } // End face loop.
 
-    for face, i in faces {
-        a, b, c := polytope[face.x], polytope[face.y], polytope[face.z]
+        // Reconstruct polytope with support point added.
+        for edge in loose_edges {
+            if len(faces) >= EPA_MAX_FACES do break
+            face := Face{
+                points = {edge[0], edge[1], sup},
+                normal = glm.normalize(glm.cross(edge[0] - edge[1], edge[0] - sup)),
+            }
 
-        normal := glm.normalize(glm.cross(b-a, c-a))
-        dist := glm.dot(normal, a)
+            BIAS :: 0.000001
+            if glm.dot(face.points[0], face.normal) + BIAS < 0 {
+                face.points[0], face.points[1] = face.points[1], face.points[0]
+                face.normal *= -1
+            }
 
-        if dist < 0 {
-            normal *= -1
-            dist   *= -1
+            append(&faces, face)
         }
-
-        append(&normals, CollisionNormal{ normal = normal, distance = dist})
-        if dist < min_dist {
-            min_dist = dist
-            min_triangle = i
-        }
     }
 
-    return
+    closest := faces[closest_face]
+    return closest.normal * glm.dot(closest.points[0], closest.normal)
 }
 
-add_if_unique_edge :: proc(edges: ^[dynamic][2]int, edge: [2]int) {
-    found_index := -1
-    for edge, i in edges do if edge == edge.yx {
-        found_index = i
-        break
-    }
-
-    if found_index == -1 {
-        append(edges, edge)
-    } else {
-        unordered_remove(edges, found_index)
-    }
-}
-
-CollisionNormal :: struct {
+Face :: struct{
+    points: [3]glm.vec3,
     normal: glm.vec3,
-    distance: f32,
+}
+
+new_face :: proc(a, b, c: glm.vec3) -> Face {
+    return {
+        points = {a, b, c},
+        normal = glm.normalize(glm.cross(b - a, c - a)),
+    }
 }

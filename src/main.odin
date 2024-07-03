@@ -99,7 +99,7 @@ main :: proc() {
 init_entities :: proc() {
     floor := entity.new(scale = {100, 0, 100})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
-    append(&physics.bodies, physics.Body{ entity_id = floor, shape = .Box })
+    append(&physics.bodies, physics.Body{ entity_id = floor, shape = .Box, static = true })
 
     box1 := entity.new(pos = {0, 20, 0})
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
@@ -107,7 +107,7 @@ init_entities :: proc() {
 
     box2 := entity.new(pos = {5, 20, 0},  scale = {2, 1, 2})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box2, vel = {-1, 0, 0}, angular_vel = {1, 1, 0}, shape = .Box })
+    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, vel = {-1, 0, 0}, angular_vel = {0, 0, 0} })
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
