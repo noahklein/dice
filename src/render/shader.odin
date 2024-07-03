@@ -191,9 +191,7 @@ setStruct :: proc(id: u32, name: string, $T: typeid, obj: T) {
 			case:
 				fmt.eprintln("Unsupported field type in setStruct", full_name, v)
 		}
-
 	}
-
 }
 
 @(private="file")

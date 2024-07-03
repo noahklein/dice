@@ -106,7 +106,7 @@ renderer_flush :: proc(m: ^Renderer) {
 
     gl.BindVertexArray(m.vao)
     gl.BindBuffer(gl.ARRAY_BUFFER, m.ibo)
-    gl.BufferSubData(gl.ARRAY_BUFFER, 0, int(len(m.instances) * size_of(Instance)), &m.instances[0])
+    gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(m.instances) * size_of(Instance), &m.instances[0])
 
     gl.DrawArraysInstanced(gl.TRIANGLES, 0, i32(len(m.verts)), i32(len(m.instances)))
 
