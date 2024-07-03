@@ -12,11 +12,13 @@ layout (location = 5) in mat4 vTransform;
 uniform mat4 uView;
 uniform mat4 uProjection;
 
+out vec3 pos;
 out vec2 texCoord;
 out vec3 normal;
-out vec4 color;
+flat out vec4 color;
 
 void main() {
+    pos = vPos;
     texCoord = vTexCoord;
     normal = vNormal;
     color = vColor;
@@ -26,9 +28,10 @@ void main() {
 #type fragment
 #version 450 core
 
+in vec3 pos;
 in vec2 texCoord;
 in vec3 normal;
-in vec4 color;
+flat in vec4 color;
 
 out vec4 finalColor;
 
@@ -36,3 +39,4 @@ void main() {
     finalColor = color;
     // finalColor = color * vec4(texCoord, 1, 1);
 }
+
