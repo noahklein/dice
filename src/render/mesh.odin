@@ -64,10 +64,10 @@ renderer_init :: proc(obj: Obj) -> Renderer {
     gl.CreateBuffers(1, &m.ibo)
     gl.BindBuffer(gl.ARRAY_BUFFER, m.ibo)
     gl.BufferData(gl.ARRAY_BUFFER, MAX_INSTANCES * size_of(Instance), nil, gl.DYNAMIC_DRAW)
+
     gl.EnableVertexAttribArray(3)
     gl.VertexAttribIPointer(3, 2, gl.UNSIGNED_INT, size_of(Instance), offset_of(Instance, texture))
     gl.VertexAttribDivisor(3, 1)
-
     gl.EnableVertexAttribArray(4)
     gl.VertexAttribPointer(4, 4, gl.FLOAT, false, size_of(Instance), offset_of(Instance, color))
     gl.VertexAttribDivisor(4, 1)

@@ -136,7 +136,7 @@ watch :: proc(s: ^Shader) -> ShaderError {
 		return .WatchFailed
 	}
 
-	if stat.modification_time._nsec >= s.last_reload {
+	if stat.modification_time._nsec > s.last_reload {
 		s.last_reload = stat.modification_time._nsec
 		new_shader, err := shader_load(s.path)
 		if err != nil {
