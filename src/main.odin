@@ -183,15 +183,15 @@ mouse_button_callback :: proc "c" (window: glfw.WindowHandle, button, action, mo
 }
 
 handle_input :: proc(w: glfw.WindowHandle, dt: f32) {
-    if glfw.GetKey(w, glfw.KEY_W) == glfw.PRESS {
-        cam.pos += cam.forward * cam.speed * dt
-    } else if glfw.GetKey(w, glfw.KEY_S) == glfw.PRESS {
-        cam.pos -= cam.forward * cam.speed * dt
-    }
+    forward := int(glfw.GetKey(w, glfw.KEY_W) == glfw.PRESS) -
+               int(glfw.GetKey(w, glfw.KEY_S) == glfw.PRESS)
+    cam.pos += f32(forward) * cam.forward * cam.speed * dt
 
-    if glfw.GetKey(w, glfw.KEY_D) == glfw.PRESS {
-        cam.pos += cam.right * cam.speed * dt
-    } else if glfw.GetKey(w, glfw.KEY_A) == glfw.PRESS {
-        cam.pos -= cam.right * cam.speed * dt
-    }
+    horiz := int(glfw.GetKey(w, glfw.KEY_D) == glfw.PRESS) -
+             int(glfw.GetKey(w, glfw.KEY_A) == glfw.PRESS)
+    cam.pos += f32(horiz) * cam.right * cam.speed * dt
+
+    vertical := int(glfw.GetKey(w, glfw.KEY_E) == glfw.PRESS) -
+                int(glfw.GetKey(w, glfw.KEY_Q) == glfw.PRESS)
+    cam.pos.y += f32(vertical) * cam.speed * dt
 }
