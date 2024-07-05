@@ -19,14 +19,16 @@ debug_draw: bool
 
 main :: proc() {
     if !glfw.Init() {
-        fmt.panicf("Failed to initialize GLFW")
+        fmt.eprintln("Failed to initialize GLFW")
+        return
     }
     defer glfw.Terminate()
     glfw.SetErrorCallback(error_callback)
 
     window := glfw.CreateWindow(1600, 900, "Dice", nil, nil)
     if window == nil {
-        fmt.panicf("Failed to create window")
+        fmt.eprintln("Failed to create window")
+        return
     }
     defer glfw.DestroyWindow(window) 
     glfw.MakeContextCurrent(window)
@@ -44,7 +46,8 @@ main :: proc() {
 
     shader, err := render.shader_load("src/shaders/cube.glsl")
     if err != nil {
-        fmt.panicf("Failed to load cube shader: %v", err)
+        fmt.eprintf("Failed to load cube shader: %v", err)
+        return
     }
 
     cube_obj, cube_err := render.load_obj("assets/cube.obj")
@@ -143,9 +146,10 @@ init_entities :: proc() {
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
     append(&physics.bodies, physics.Body{entity_id = box1, shape = .Box, mass = 1 })
 
-    box2 := entity.new(pos = {5, 20, 0}, orientation = glm.quatAxisAngle({0, 1, 0}, glm.PI / 4),  scale = {2, 1, 2})
+    box2 := entity.new(pos = {10, 20, 0}, scale = {2, 1, 2})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {glm.PI / 4, glm.PI / 2, 0}})
+    // append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {glm.PI / 4, glm.PI / 2, 0}})
+    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 4, vel = {-2, 0, 0} })
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
