@@ -18,11 +18,11 @@ out vec3 normal;
 flat out vec4 color;
 
 void main() {
-    pos = vPos;
+    pos = (vTransform * vec4(vPos, 1)).xyz;
     texCoord = vTexCoord;
     normal = mat3(transpose(inverse(vTransform))) * vNormal;
     color = vColor;
-    gl_Position = uProjection * uView * vTransform * vec4(vPos, 1.0);
+    gl_Position = uProjection * uView * vec4(pos, 1);
 }
 
 #type fragment
@@ -44,28 +44,52 @@ struct Light {
     float outerCutoff;
 };
 
+struct DirLight {
+    vec3 direction;
+  
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};  
+
 in vec3 pos;
 in vec2 texCoord;
 in vec3 normal;
 flat in vec4 color;
 
+uniform DirLight uDirLight;
 uniform Light uLight;
 uniform vec3 uCamPos;
 
 out vec4 finalColor;
 
-vec3 calcLighting(Light light) {
-    vec3 norm = normalize(normal);
+const float shininess = 1; // @TODO: make configurable.
+
+vec3 calcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
+    vec3 lightDir = normalize(-light.direction);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+
+    // @TODO: multiply by diffuse map and specular maps.
+    vec3 ambient  = light.ambient;
+    vec3 diffuse  = light.diffuse  * diff;
+    vec3 specular = light.specular * spec;
+    return (ambient + diffuse + specular);
+}  
+
+vec3 calcPointLight(Light light, vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - pos);
 
     // Diffuse
-    float diff = max(dot(norm, lightDir), 0);
+    float diff = max(dot(normal, lightDir), 0);
     vec3 diffuse = light.diffuse * diff;
 
     // Specular
-    vec3 viewDir = normalize(uCamPos - pos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0), 1); // TODO: replace exponent with material shininess
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0), shininess);
     vec3 specular = light.specular * spec;
 
      // Spotlight (soft edges)
@@ -83,20 +107,28 @@ vec3 calcLighting(Light light) {
 }
 
 void main() {
-    Light light2 = Light(
-        vec3(2),
-        vec3(0, -1, 1),
+    // Light light2 = Light(
+    //     vec3(2),
+    //     vec3(0, -1, 1),
 
-        vec3(0.5),
-        vec3(0.5),
-        vec3(0.75),
+    //     vec3(0.8),
+    //     vec3(0.75),
+    //     vec3(0.9),
 
-        1, 0.09, 0.032,
+    //     1, 0.09, 0.022,
 
-        12.5, 17.5
+    //     12.5, 17.5
+    // );
+
+    DirLight dirLight = DirLight(
+        vec3(-0.2, -1, -0.3),
+        vec3(0.05), vec3(0.4), vec3(0.5)
     );
-    // finalColor = vec4(calcLighting(uLight), 1) * color;
-    finalColor = vec4(calcLighting(light2), 1) * color;
-    // finalColor = color * vec4(texCoord, 1, 1);
-}
 
+    vec3 norm = normalize(normal);
+    vec3 viewDir = normalize(uCamPos - pos);
+    vec3 result = calcDirLight(dirLight, norm, viewDir);
+    result += calcPointLight(uLight, norm, viewDir);
+
+    finalColor = color * vec4(result, 1);
+}
