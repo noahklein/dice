@@ -107,7 +107,7 @@ vec3 calcPointLight(Light light, vec3 normal, vec3 viewDir) {
 }
 
 void main() {
-    // Light light2 = Light(
+    // const Light light2 = Light(
     //     vec3(2),
     //     vec3(0, -1, 1),
 
@@ -120,7 +120,7 @@ void main() {
     //     12.5, 17.5
     // );
 
-    DirLight dirLight = DirLight(
+    const DirLight dirLight = DirLight(
         vec3(-0.2, -1, -0.3),
         vec3(0.05), vec3(0.4), vec3(0.5)
     );
