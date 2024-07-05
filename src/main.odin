@@ -80,7 +80,7 @@ main :: proc() {
         glfw.PollEvents()
 
         now := f32(glfw.GetTime())
-        dt := now - prev_time
+        dt := min(now - prev_time, 0.05)
         prev_time = now
 
         handle_input(window, dt)
