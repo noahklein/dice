@@ -66,6 +66,7 @@ bodies_fixed_update :: proc() {
 
     colliders_update()
 
+    // Detect collisions.
     clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
@@ -80,20 +81,44 @@ bodies_fixed_update :: proc() {
         }
     }
 
-    for col in collisions {
-        a_body, b_body := &bodies[col.a_body_id], &bodies[col.b_body_id]
+    // Resolve collisions.
+    for hit in collisions {
+        a_body, b_body := &bodies[hit.a_body_id], &bodies[hit.b_body_id]
         a_ent, b_ent := entity.get(a_body.entity_id), entity.get(b_body.entity_id)
+        fmt.println(hit.normal)
 
+        // Move objects.
         if a_body.static && b_body.static {
             continue
         } else if a_body.static {
-            b_ent.pos += col.normal
+            b_ent.pos += hit.normal
         } else if b_body.static {
-            a_ent.pos -= col.normal
+            a_ent.pos -= hit.normal
         } else {
-            a_ent.pos -= col.normal/2
-            b_ent.pos += col.normal/2
+            a_ent.pos -= hit.normal/2
+            b_ent.pos += hit.normal/2
         }
+
+        // Bounce off each other, update linear and angular momenta.
+        if glm.dot(hit.normal, hit.normal) < 1e-18 do continue
+        normal := glm.normalize(hit.normal)
+        a_inv_mass := 0 if a_body.mass == 0 else 1 / a_body.mass
+        b_inv_mass := 0 if b_body.mass == 0 else 1 / b_body.mass
+
+        rel_vel := (b_body.vel + b_body.angular_vel) -
+                   (a_body.vel + a_body.angular_vel)
+        contact_vel_mag := glm.dot(rel_vel, normal)
+        if contact_vel_mag > 0 {
+            continue
+        }
+
+        restitution :: f32(1)
+        J: glm.vec3 = -(1 + restitution) * contact_vel_mag
+        J /= a_inv_mass + b_inv_mass
+        J *= normal
+
+        a_body.vel -= J * a_inv_mass
+        b_body.vel += J * b_inv_mass 
     }
 }
 
