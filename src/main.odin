@@ -120,8 +120,14 @@ main :: proc() {
 
         if debug_draw {
             render.lines_begin(&proj, &view)
+            physics.colliders_update()
             for c in physics.colliders {
                 render.draw_lines_aabb(c.aabb.min, c.aabb.max)
+            }
+
+            for m in render.meshes {
+                p := entity.get(m.entity_id).pos
+                render.draw_line(p, p + {0, 10, 0}, color = m.color.rgb)
             }
             render.lines_flush()
         }
@@ -137,9 +143,9 @@ init_entities :: proc() {
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
     append(&physics.bodies, physics.Body{entity_id = box1, shape = .Box, mass = 1 })
 
-    box2 := entity.new(pos = {5, 20, 0},  scale = {2, 1, 2})
+    box2 := entity.new(pos = {5, 20, 0}, orientation = glm.quatAxisAngle({0, 1, 0}, glm.PI / 4),  scale = {2, 1, 2})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {0.2, 1, 0} })
+    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {glm.PI / 4, glm.PI / 2, 0}})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

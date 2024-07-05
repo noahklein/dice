@@ -51,26 +51,20 @@ bodies_fixed_update :: proc() {
             body.vel = glm.normalize(body.vel) * MAX_SPEED
         }
 
-        ent.pos += body.vel*DT
+        ent.pos += body.vel * DT
 
-        ent.orientation += ent.orientation * cross(body.angular_vel) * DT
-    }
-
-    clear(&colliders)
-    for body, i in bodies {
-        transform := entity.transform(body.entity_id)
-
-        c := Collider{ body_id = i, shape = shapes[body.shape] }
-        for i in 0..<c.vertex_count {
-            v := c.vertices[i].xyzx
-            v.w = 1
-            c.vertices[i] = (transform * v).xyz
+        {
+            // Apply angular velocity.
+            a := body.angular_vel
+            omega: glm.quat = quaternion(real = 0, imag = a.x, jmag = a.y, kmag = a.z)
+            ent.orientation += omega * ent.orientation * (DT / 2)
+            // Without normalization orientation's magnitude will keep growing and start to skew the object.
+            // This doesn't need to happen every tick, but it's pretty cheap so who gives a quat.
+            ent.orientation = glm.normalize_quat(ent.orientation)
         }
-
-        compute_aabb(&c)
-
-        append(&colliders, c)
     }
+
+    colliders_update()
 
     clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
@@ -103,10 +97,20 @@ bodies_fixed_update :: proc() {
     }
 }
 
-cross :: #force_inline proc(v: glm.vec3) -> glm.mat3 {
-    return {
-        0, -v.z, v.y,
-        v.z, 0, -v.x,
-        -v.y, v.x, 0,
+colliders_update :: proc() {
+    clear(&colliders)
+    for body, i in bodies {
+        transform := entity.transform(body.entity_id)
+
+        c := Collider{ body_id = i, shape = shapes[body.shape] }
+        for i in 0..<c.vertex_count {
+            v := c.vertices[i].xyzx
+            v.w = 1
+            c.vertices[i] = (transform * v).xyz
+        }
+
+        compute_aabb(&c)
+
+        append(&colliders, c)
     }
 }

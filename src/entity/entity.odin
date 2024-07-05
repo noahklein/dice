@@ -9,15 +9,18 @@ deleted:  [dynamic]ID
 
 Entity :: struct {
     pos, scale: glm.vec3,
-    orientation: glm.mat3,
+    orientation: glm.quat,
 }
 
-new :: proc(pos: glm.vec3 = 0, orientation: glm.mat3 = 1, scale: glm.vec3 = 1) -> ID {
+new :: proc(pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) -> ID {
+    ent := Entity{pos = pos, scale = scale, orientation = orientation}
     if len(deleted) > 0 {
-        return pop(&deleted)
+        id := pop(&deleted)
+        entities[id] = ent
+        return id
     }
 
-    append(&entities, Entity{ pos = pos, orientation = orientation, scale = scale })
+    append(&entities, ent)
     return len(entities) - 1
 }
 
@@ -33,12 +36,10 @@ get :: proc(id: ID) -> ^Entity {
     return &entities[id]
 }
 
-transform :: proc(id: ID) -> (m: glm.mat4) {
+transform :: proc(id: ID) -> glm.mat4 {
     e := entities[id]
-    m = glm.mat4Scale(e.scale)
-    m *= glm.mat4Translate(e.pos)
-    m *= mat3ToMat4(e.orientation)
-    return
+    m := glm.mat4Translate(e.pos) * glm.mat4FromQuat(e.orientation) * glm.mat4Scale(e.scale)
+    return m
 }
 
 mat3ToMat4 :: #force_inline proc(m: glm.mat3) -> glm.mat4 {
