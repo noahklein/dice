@@ -33,17 +33,22 @@ aabb_vs_aabb :: proc(a, b: AABB) -> bool {
            (a.max.z >= b.min.z && b.max.z >= a.min.z)
 }
 
+SimplexPoint :: struct {
+    a, b: glm.vec3, // Support points on colliders A and B, retained for finding contact points.
+    p: glm.vec3,    // p = a - b
+}
+
 Simplex :: struct {
-    points: [4]glm.vec3,
+    points: [4]SimplexPoint,
     size: int,
 }
 
-simplex_set :: proc(s: ^Simplex, points: ..glm.vec3) {
+simplex_set :: proc(s: ^Simplex, points: ..SimplexPoint) {
     s.size = len(points)
     for p, i in points do s.points[i] = p
 }
 
-simplex_push_front :: proc(s: ^Simplex, point: glm.vec3) {
+simplex_push_front :: proc(s: ^Simplex, point: SimplexPoint) {
     s.points = {point, s.points[0], s.points[1], s.points[2]}
     s.size = min(s.size + 1, 4)
 }
@@ -51,11 +56,11 @@ simplex_push_front :: proc(s: ^Simplex, point: glm.vec3) {
 gjk_is_colliding :: proc(a, b: Collider) -> (Simplex, bool) {
     simplex: Simplex
     simplex_push_front(&simplex, support(a, b, {1, 0, 0}))
-    dir := -simplex.points[0]
+    dir := -simplex.points[0].p
 
     for {
         sup := support(a, b, dir)
-        if glm.dot(sup, dir) < 0 {
+        if glm.dot(sup.p, dir) < 0 {
             return {}, false
         }
         simplex_push_front(&simplex, sup)
@@ -78,8 +83,8 @@ do_simplex :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
 
 gjk_line :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
     a, b := simplex.points[0], simplex.points[1]
-    ab := b - a
-    ao :=   - a
+    ab := b.p - a.p
+    ao :=     - a.p
 
     if same_direction(ab, ao) {
         dir^ = glm.vectorTripleProduct(ab, ao, ab)
@@ -93,9 +98,9 @@ gjk_line :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
 
 gjk_triangle :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
     a, b, c := simplex.points[0], simplex.points[1], simplex.points[2]
-    ab := b - a
-    ac := c - a
-    ao :=   - a
+    ab := b.p - a.p
+    ac := c.p - a.p
+    ao :=     - a.p
 
     abc := glm.cross(ab, ac)
 
@@ -124,10 +129,10 @@ gjk_triangle :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
 
 gjk_tetrahedron :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {
     a, b, c, d := simplex.points[0], simplex.points[1], simplex.points[2], simplex.points[3]
-    ab := b - a
-    ac := c - a
-    ad := d - a
-    ao :=   - a
+    ab := b.p - a.p
+    ac := c.p - a.p
+    ad := d.p - a.p
+    ao :=     - a.p
 
     abc := glm.cross(ab, ac)
     acd := glm.cross(ac, ad)
@@ -154,10 +159,11 @@ same_direction :: proc(a, b: glm.vec3) -> bool {
 }
 
 // Minkowski sum support function for GJK.
-support :: proc(a, b: Collider, dir: glm.vec3) -> glm.vec3 {
-    p := furthest_point(a,  dir)
-    q := furthest_point(b, -dir)
-    return p - q
+support :: proc(a, b: Collider, dir: glm.vec3) -> (sp: SimplexPoint) {
+    sp.a = furthest_point(a,  dir)
+    sp.b = furthest_point(b, -dir)
+    sp.p = sp.a - sp.b
+    return 
 }
 
 // Get the furthest point on a collider in a given direction.
@@ -174,10 +180,4 @@ furthest_point :: proc(c: Collider, dir: glm.vec3) -> glm.vec3 {
     }
 
     return furthest
-}
-
-// Average point is a good approximation of a shape's center.
-average_point :: proc(c: Collider) -> (avg: glm.vec3) {
-    for i in 0..<c.vertex_count do avg += c.vertices[i]
-    return avg / f32(c.vertex_count)
 }
