@@ -10,7 +10,8 @@ body_dt_acc: f32
 DT :: 1.0 / 120.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 MAX_SPEED :: 64
-SLOP :: 0.05
+SLOP_PENETRATION :: 0.05 // m
+SLOP_RESTITUTION ::  0.5 // m/s
 
 colliders: [dynamic]Collider
 collisions: [dynamic]Collision
@@ -20,6 +21,9 @@ Body :: struct {
     inv_mass: f32,
     vel, force: glm.vec3,
     angular_vel, torque: glm.vec3, 
+
+    at_rest: bool,
+    restitution: f32,
 
     inv_inertia: glm.vec3,
     inv_inertia_tensor: glm.mat3,
@@ -39,6 +43,7 @@ bodies_create :: proc(id: entity.ID, shape: ShapeID = .Box, mass: f32 = 0,
         inv_mass = inv_mass,
         vel = vel, angular_vel = ang_vel,
         inv_inertia = body_inertia(id, inv_mass, shape),
+        restitution = 0.3,
     })
     body_update_inertia(&bodies[len(bodies) - 1])
 
@@ -52,9 +57,11 @@ bodies_update :: proc(dt: f32) {
     }
 }
 
+first_tick := true
 bodies_fixed_update :: proc() {
-    for &body in bodies do if body.inv_mass != 0 {
-        ent := entity.get(body.entity_id)
+    for &body in bodies do if body.inv_mass != 0 && !body.at_rest {
+        if !first_tick && body_sleep_check(&body) do continue
+        first_tick = false
 
         // Integrate acceleration.
         body.force += GRAVITY / body.inv_mass
@@ -62,14 +69,17 @@ bodies_fixed_update :: proc() {
         body.vel += accel * DT
         body.force = 0
 
-        // Integrate angular acceleration.
-        body_update_inertia(&body)
-        body.angular_vel += body.inv_inertia_tensor * body.torque * DT
-
         if glm.length(body.vel) > MAX_SPEED {
             body.vel = glm.normalize(body.vel) * MAX_SPEED
         }
 
+        // Integrate angular acceleration.
+        body_update_inertia(&body)
+        body.angular_vel += body.inv_inertia_tensor * body.torque * DT
+    }
+
+    for body in bodies do if body.inv_mass != 0 {
+        ent := entity.get(body.entity_id)
         // Integrate velocity.
         ent.pos += body.vel * DT
 
@@ -79,7 +89,6 @@ bodies_fixed_update :: proc() {
             omega: glm.quat = quaternion(real = 0, imag = a.x, jmag = a.y, kmag = a.z)
             ent.orientation += omega * ent.orientation 
             // Without normalization orientation's magnitude will keep growing and start to skew the object.
-            // This doesn't need to happen every tick, but it's pretty cheap so who gives a quat.
             ent.orientation = glm.normalize_quat(ent.orientation)
         }
     }
@@ -116,7 +125,7 @@ resolve_collision :: proc(collision_info: Collision) {
     if total_mass == 0 do return // Two static bodies.
 
     // Move objects.
-    pen := hit.normal * max(hit.depth - SLOP, 0)
+    pen := hit.normal * max(hit.depth - SLOP_PENETRATION, 0)
     entA.pos -= pen * (bodyA.inv_mass / total_mass)
     entB.pos += pen * (bodyB.inv_mass / total_mass)
 
@@ -125,24 +134,20 @@ resolve_collision :: proc(collision_info: Collision) {
     cpA := hit.contactA - entA.pos
     cpB := hit.contactB - entB.pos
 
-    ang_velA := glm.cross(bodyA.angular_vel, cpA)
-    ang_velB := glm.cross(bodyB.angular_vel, cpB)
-
-    rel_vel := (bodyB.vel + ang_velB) - (bodyA.vel + ang_velA)
-    impulse := glm.dot(rel_vel, hit.normal)
-
-    contact_vel_mag := glm.dot(rel_vel, hit.normal)
-    if contact_vel_mag > 0 {
+    rel_vel := (bodyB.vel + glm.cross(bodyB.angular_vel, cpB)) -
+               (bodyA.vel + glm.cross(bodyA.angular_vel, cpA))
+    impulse := glm.dot(rel_vel, hit.normal) // Magnitude of the force.
+    if impulse > 0 {
         return
     }
 
-    // Inertia
     inertiaA := glm.cross(bodyA.inv_inertia_tensor * glm.cross(cpA, hit.normal), cpA)
     inertiaB := glm.cross(bodyB.inv_inertia_tensor * glm.cross(cpB, hit.normal), cpB)
-
     ang_effect := glm.dot(inertiaA + inertiaB, hit.normal)
 
-    restitution :: f32(0.75)
+    // Restitution is the percentage of energy that gets conserved on collision.
+    restitution := min(bodyA.restitution, bodyB.restitution)
+    // J: glm.vec3 = -(1 + restitution) * max(impulse - SLOP_RESTITUTION, 0) * hit.normal
     J: glm.vec3 = -(1 + restitution) * impulse * hit.normal
     J /= (total_mass + ang_effect)
 
@@ -154,9 +159,8 @@ resolve_collision :: proc(collision_info: Collision) {
 
     {
         // Friction
-        ang_velA := glm.cross(bodyA.angular_vel, cpA)
-        ang_velB := glm.cross(bodyB.angular_vel, cpB)
-        rel_vel := (bodyB.vel + ang_velB) - (bodyA.vel + ang_velA)
+        rel_vel = (bodyB.vel + glm.cross(bodyB.angular_vel, cpB)) -
+                  (bodyA.vel + glm.cross(bodyA.angular_vel, cpA))
 
         tangent := rel_vel - glm.dot(rel_vel, hit.normal) * hit.normal
         if glm.length(tangent) < 1e-18 do return
@@ -165,7 +169,6 @@ resolve_collision :: proc(collision_info: Collision) {
         friction_impulse_mag := -glm.dot(rel_vel, tangent) / (total_mass + glm.dot(inertiaA + inertiaB, tangent))
         friction_impulse := friction_impulse_mag * tangent
 
-        // Clamp friction impulse to Coulomb's law
         FRICTION :: 1.0
         max_friction := glm.length(J) * FRICTION
         if glm.length(friction_impulse) > max_friction {
@@ -238,4 +241,12 @@ body_update_inertia :: proc(b: ^Body) {
 
     q := entity.get(b.entity_id).orientation
     b.inv_inertia_tensor = mat3FromQuat(q) * mat3_scale(b.inv_inertia) * mat3FromQuat(conj(q))
+}
+
+body_sleep_check :: proc(b: ^Body) -> bool {
+    SLEEP :: 0.001
+    if glm.length(b.vel) < SLEEP do b.vel = 0
+    if glm.length(b.angular_vel) < SLEEP do b.angular_vel = 0
+    b.at_rest = b.vel == 0 && b.angular_vel == 0
+    return b.at_rest
 }

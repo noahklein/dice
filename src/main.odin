@@ -66,7 +66,7 @@ main :: proc() {
     }
 
     prev_time := f32(glfw.GetTime())
-    timescale := f32(3)
+    timescale := f32(2)
 
     init_entities()
     init_camera(1600.0 / 900.0)
@@ -114,9 +114,14 @@ main :: proc() {
         })
 
         for m in render.meshes {
+            color := m.color
+            for body in physics.bodies do if body.entity_id == m.entity_id && body.at_rest {
+                color = {0.5, 0.5, 0.5, 1}
+                break
+            }
             render.renderer_draw(&mesh, {
                 transform = entity.transform(m.entity_id),
-                color = m.color,
+                color = color,
             })
         }
 
@@ -149,7 +154,7 @@ init_entities :: proc() {
 
     box2 := entity.new(pos = {10, 5, 0}, scale = {3, 2, 3})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    physics.bodies_create(box2, .Box, mass = 9, vel = {2, 0, 0})
+    physics.bodies_create(box2, .Box, mass = 9, vel = {0, 0, 0}, ang_vel = {1, 0, 0})
 
     box3 := entity.new(pos = {-6, 0, 0}, scale = {1, 2, 1})
     append(&render.meshes, render.Mesh{entity_id = box3, color = {0, 1, 1, 1}})
