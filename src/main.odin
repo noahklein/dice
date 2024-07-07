@@ -66,6 +66,7 @@ main :: proc() {
     }
 
     prev_time := f32(glfw.GetTime())
+    timescale := f32(3)
 
     init_entities()
     init_camera(1600.0 / 900.0)
@@ -80,7 +81,7 @@ main :: proc() {
         glfw.PollEvents()
 
         now := f32(glfw.GetTime())
-        dt := min(now - prev_time, 0.05)
+        dt := min(timescale * (now - prev_time), 0.05)
         prev_time = now
 
         handle_input(window, dt)
@@ -138,7 +139,7 @@ main :: proc() {
 }
 
 init_entities :: proc() {
-    floor := entity.new(pos = {0, -5, 0}, scale = {100, 10, 100})
+    floor := entity.new(pos = {0, -5, 0}, scale = {30, 3, 30})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
     physics.bodies_create(floor, .Box)
 
@@ -146,10 +147,13 @@ init_entities :: proc() {
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
     physics.bodies_create(box1, .Box, mass = 1)
 
-    box2 := entity.new(pos = {10, 20, 0}, scale = {3, 1, 3})
+    box2 := entity.new(pos = {10, 5, 0}, scale = {3, 2, 3})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    // append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {glm.PI / 4, glm.PI / 2, 0}})
-    physics.bodies_create(box2, .Box, mass = 9, vel = {-2, 0, 0})
+    physics.bodies_create(box2, .Box, mass = 9, vel = {2, 0, 0})
+
+    box3 := entity.new(pos = {-6, 0, 0}, scale = {1, 2, 1})
+    append(&render.meshes, render.Mesh{entity_id = box3, color = {0, 1, 1, 1}})
+    physics.bodies_create(box3, .Box, mass = 20, vel = {0, 10, 0})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

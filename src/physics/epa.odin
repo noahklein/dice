@@ -10,7 +10,7 @@ CollisionManifold :: struct {
 }
 
 // Expanding Polytope Algorithm; expands the GJK simplex iteratively
-epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> CollisionManifold {
+epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> Manifold {
     context.allocator = context.temp_allocator
 
     EPA_MAX_FACES :: 64
@@ -83,7 +83,11 @@ epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> CollisionManifold {
         // Reconstruct polytope with support point added.
         for edge in loose_edges {
             if len(faces) >= EPA_MAX_FACES do break
-            face := new_face(edge[0], edge[1], sup)
+            // face := new_face(edge[0], edge[1], sup)
+            face := Face{
+                points = {edge[0], edge[1], sup},
+                normal = glm.normalize(glm.cross(edge[0].p - edge[1].p, edge[0].p - sup.p)),
+            }
 
             BIAS :: 0.000001
             if glm.dot(face.points[0].p, face.normal) + BIAS < 0 {
@@ -110,7 +114,7 @@ new_face :: proc(a, b, c: SimplexPoint) -> Face {
     }
 }
 
-collision_manifold :: proc(f: Face) -> CollisionManifold {
+collision_manifold :: proc(f: Face) -> Manifold {
     a, b, c := f.points[0], f.points[1], f.points[2]
     // Project origin onto triangle.
     projection_point := plane_project(plane_from_tri(a.p, b.p, c.p), 0) 

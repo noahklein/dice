@@ -10,9 +10,8 @@ body_dt_acc: f32
 DT :: 1.0 / 120.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 MAX_SPEED :: 64
+SLOP :: 0.05
 
-ShapeID :: enum { Box }
-shapes: [ShapeID]Shape
 colliders: [dynamic]Collider
 collisions: [dynamic]Collision
 
@@ -29,7 +28,7 @@ Body :: struct {
 
 Collision :: struct{
     a_body_id, b_body_id: int,
-    manifold: CollisionManifold,
+    manifold: Manifold,
 }
 
 bodies_create :: proc(id: entity.ID, shape: ShapeID = .Box, mass: f32 = 0,
@@ -91,65 +90,95 @@ bodies_fixed_update :: proc() {
     clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
-            // aabb_vs_aabb(a.aabb, b.aabb) or_continue
+            aabb_vs_aabb(a.aabb, b.aabb) or_continue
             simplex := gjk_is_colliding(a, b) or_continue
+            manifold := epa(a, b, simplex)
 
             append(&collisions, Collision{
                 a_body_id = a.body_id, b_body_id = b.body_id,
-                manifold = epa(a, b, simplex),
+                manifold = manifold,
             })
         }
     }
 
     // Resolve collisions.
-    for hit in collisions do resolve_collision(hit)
+    for hit in collisions {
+        resolve_collision(hit)
+    }
 }
 
-resolve_collision :: proc(hit: Collision) {
-    manf := hit.manifold
-    bodyA, bodyB := &bodies[hit.a_body_id], &bodies[hit.b_body_id]
+resolve_collision :: proc(collision_info: Collision) {
+    hit := collision_info.manifold
+    bodyA, bodyB := &bodies[collision_info.a_body_id], &bodies[collision_info.b_body_id]
     entA, entB := entity.get(bodyA.entity_id), entity.get(bodyB.entity_id)
 
     total_mass := bodyA.inv_mass + bodyB.inv_mass
     if total_mass == 0 do return // Two static bodies.
 
     // Move objects.
-    pen := manf.depth * manf.normal
+    pen := hit.normal * max(hit.depth - SLOP, 0)
     entA.pos -= pen * (bodyA.inv_mass / total_mass)
     entB.pos += pen * (bodyB.inv_mass / total_mass)
 
-    // if glm.dot(pen, pen) < 1e-18 do return
+    if glm.dot(pen, pen) < 1e-18 do return
 
-    cpA := manf.contactA - entA.pos
-    cpB := manf.contactB - entB.pos
+    cpA := hit.contactA - entA.pos
+    cpB := hit.contactB - entB.pos
 
     ang_velA := glm.cross(bodyA.angular_vel, cpA)
     ang_velB := glm.cross(bodyB.angular_vel, cpB)
 
     rel_vel := (bodyB.vel + ang_velB) - (bodyA.vel + ang_velA)
-    impulse := glm.dot(rel_vel, manf.normal)
+    impulse := glm.dot(rel_vel, hit.normal)
 
-    contact_vel_mag := glm.dot(rel_vel, manf.normal)
+    contact_vel_mag := glm.dot(rel_vel, hit.normal)
     if contact_vel_mag > 0 {
         return
     }
 
     // Inertia
-    inertiaA := glm.cross(bodyA.inv_inertia_tensor * glm.cross(cpA, manf.normal), cpA)
-    inertiaB := glm.cross(bodyB.inv_inertia_tensor * glm.cross(cpB, manf.normal), cpB)
+    inertiaA := glm.cross(bodyA.inv_inertia_tensor * glm.cross(cpA, hit.normal), cpA)
+    inertiaB := glm.cross(bodyB.inv_inertia_tensor * glm.cross(cpB, hit.normal), cpB)
 
-    ang_effect := glm.dot(inertiaA + inertiaB, manf.normal)
+    ang_effect := glm.dot(inertiaA + inertiaB, hit.normal)
 
-    restitution :: f32(0.8)
-    J: glm.vec3 = -(1 + restitution) * impulse
+    restitution :: f32(0.75)
+    J: glm.vec3 = -(1 + restitution) * impulse * hit.normal
     J /= (total_mass + ang_effect)
-    J *= manf.normal
 
     bodyA.vel -= J * bodyA.inv_mass
     bodyB.vel += J * bodyB.inv_mass 
 
     bodyA.angular_vel += bodyA.inv_inertia_tensor * glm.cross(cpA, -J)
     bodyB.angular_vel += bodyB.inv_inertia_tensor * glm.cross(cpB,  J)
+
+    {
+        // Friction
+        ang_velA := glm.cross(bodyA.angular_vel, cpA)
+        ang_velB := glm.cross(bodyB.angular_vel, cpB)
+        rel_vel := (bodyB.vel + ang_velB) - (bodyA.vel + ang_velA)
+
+        tangent := rel_vel - glm.dot(rel_vel, hit.normal) * hit.normal
+        if glm.length(tangent) < 1e-18 do return
+        tangent = glm.normalize(tangent)
+
+        friction_impulse_mag := -glm.dot(rel_vel, tangent) / (total_mass + glm.dot(inertiaA + inertiaB, tangent))
+        friction_impulse := friction_impulse_mag * tangent
+
+        // Clamp friction impulse to Coulomb's law
+        FRICTION :: 1.0
+        max_friction := glm.length(J) * FRICTION
+        if glm.length(friction_impulse) > max_friction {
+            friction_impulse = glm.normalize(friction_impulse) * max_friction
+        }
+
+        // Apply friction impulse
+        bodyA.vel -= friction_impulse * bodyA.inv_mass
+        bodyB.vel += friction_impulse * bodyB.inv_mass
+
+        bodyA.angular_vel += bodyA.inv_inertia_tensor * glm.cross(cpA, -friction_impulse)
+        bodyB.angular_vel += bodyB.inv_inertia_tensor * glm.cross(cpB, friction_impulse)
+    }
 }
 
 colliders_update :: proc() {
