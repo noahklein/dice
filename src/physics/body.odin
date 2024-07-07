@@ -4,7 +4,7 @@ import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "../entity"
 
-bodies: [dynamic]Body
+bodies := make([dynamic]Body, 0, 128)
 body_dt_acc: f32
 
 DT :: 1.0 / 120.0

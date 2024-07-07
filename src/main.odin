@@ -144,9 +144,26 @@ main :: proc() {
 }
 
 init_entities :: proc() {
-    floor := entity.new(pos = {0, -5, 0}, scale = {30, 3, 30})
+    FLOOR_SIZE   :: 30
+    WALL_HEIGHT :: 30
+    floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
     physics.bodies_create(floor, .Box)
+
+    roof := entity.new(pos = {0, -5 + WALL_HEIGHT, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
+    append(&render.meshes, render.Mesh{entity_id = roof, color = {0, 0, 1, 1}})
+    physics.bodies_create(roof, .Box)
+
+    create_wall :: proc(pos, scale: glm.vec3) {
+        w := entity.new(pos = pos, scale = scale)
+        // append(&render.meshes, render.Mesh{entity_id = w, color = {0, 0, 1, 0.25}})
+        physics.bodies_create(w, .Box)
+    }
+
+    create_wall({0, 0, -FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT, 1})
+    create_wall({0, 0,  FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT, 1})
+    create_wall({-FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
+    create_wall({ FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
 
     box1 := entity.new(pos = {0, 20, 0})
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
@@ -185,13 +202,31 @@ mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
     }
 }
 
-mouse_button_callback :: proc "c" (window: glfw.WindowHandle, button, action, mods: i32) {
+mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i32) {
+    context = runtime.default_context()
+
     if button == glfw.MOUSE_BUTTON_RIGHT && action == glfw.PRESS {
         cursor_hidden = !cursor_hidden
         init_mouse = false
 
         cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
-        glfw.SetInputMode(window, glfw.CURSOR, cursor_status)
+        glfw.SetInputMode(w, glfw.CURSOR, cursor_status)
+    }
+
+    if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
+        x, y := glfw.GetCursorPos(w)
+        width, height := glfw.GetWindowSize(w)
+
+        ray := mouse_to_ray(cam, {f32(x), f32(y)}, {f32(width), f32(height)})
+
+        if p, ok := project_ray_plane(cam.pos, ray, {0, -1, 0}, {0, -2, 0}); ok {
+            pos := cam.pos + p*ray
+            pos += {0, 10, 0}
+
+            box := entity.new(pos = cam.pos, scale = {1, 1, 1})
+            append(&render.meshes, render.Mesh{entity_id = box, color = {0, 1, 1, 1}})
+            physics.bodies_create(box, .Box, mass = 5, vel = pos - cam.pos)
+        }
     }
 }
 
@@ -207,4 +242,14 @@ handle_input :: proc(w: glfw.WindowHandle, dt: f32) {
     vertical := int(glfw.GetKey(w, glfw.KEY_E) == glfw.PRESS) -
                 int(glfw.GetKey(w, glfw.KEY_Q) == glfw.PRESS)
     cam.pos.y += f32(vertical) * cam.speed * dt
+}
+
+project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.vec3, bool) {
+    denom := glm.dot(r_dir, p_norm)
+    if denom <= 1e-4 {
+        return 0, false
+    }
+
+    t := glm.dot(p_center - r_origin, p_norm) / denom
+    return t, t > 0 
 }

@@ -23,11 +23,13 @@ simplex_push_front :: proc(s: ^Simplex, point: SimplexPoint) {
 }
 
 gjk_is_colliding :: proc(a, b: Collider) -> (Simplex, bool) {
+    MAX_ITER :: 64
+
     simplex: Simplex
     simplex_push_front(&simplex, support(a, b, {1, 0, 0}))
     dir := -simplex.points[0].p
 
-    for {
+    for _ in 0..<MAX_ITER {
         sup := support(a, b, dir)
         if glm.dot(sup.p, dir) < 0 {
             return {}, false
@@ -38,6 +40,8 @@ gjk_is_colliding :: proc(a, b: Collider) -> (Simplex, bool) {
             return simplex, true
         }
     }
+
+    return {}, false
 }
 
 do_simplex :: proc(simplex: ^Simplex, dir: ^glm.vec3) -> bool {

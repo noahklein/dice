@@ -4,8 +4,8 @@ import glm "core:math/linalg/glsl"
 
 ID :: uint
 
-entities: [dynamic]Entity
-deleted:  [dynamic]ID
+entities := make([dynamic]Entity, 0, 128)
+deleted  := make([dynamic]ID, 0, 128)
 
 Entity :: struct {
     pos, scale: glm.vec3,
