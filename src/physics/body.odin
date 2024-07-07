@@ -10,6 +10,7 @@ body_dt_acc: f32
 DT :: 1.0 / 120.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 MAX_SPEED :: 64
+MAX_ANG_SPEED :: 13
 SLOP_PENETRATION :: 0.05 // m
 SLOP_RESTITUTION ::  0.5 // m/s
 
@@ -61,7 +62,7 @@ first_tick := true
 bodies_fixed_update :: proc() {
     for &body in bodies do if body.inv_mass != 0 && !body.at_rest {
         if !first_tick && body_sleep_check(&body) do continue
-        first_tick = false
+        // first_tick = false
 
         // Integrate acceleration.
         body.force += GRAVITY / body.inv_mass
@@ -76,6 +77,10 @@ bodies_fixed_update :: proc() {
         // Integrate angular acceleration.
         body_update_inertia(&body)
         body.angular_vel += body.inv_inertia_tensor * body.torque * DT
+
+        if mag := glm.length(body.angular_vel); mag > MAX_ANG_SPEED {
+            body.angular_vel *= MAX_ANG_SPEED / mag
+        }
     }
 
     for body in bodies do if body.inv_mass != 0 {

@@ -9,6 +9,7 @@ import "vendor:glfw"
 
 import "entity"
 import "physics"
+import "random"
 import "render"
 
 GL_MAJOR_VERSION :: 4
@@ -134,10 +135,6 @@ main :: proc() {
                 render.draw_lines_aabb(c.aabb.min, c.aabb.max)
             }
 
-            for m in render.meshes {
-                p := entity.get(m.entity_id).pos
-                render.draw_line(p, p + {0, 10, 0}, color = m.color.rgb)
-            }
             render.lines_flush()
         }
     }
@@ -216,17 +213,7 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
     if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
         x, y := glfw.GetCursorPos(w)
         width, height := glfw.GetWindowSize(w)
-
-        ray := mouse_to_ray(cam, {f32(x), f32(y)}, {f32(width), f32(height)})
-
-        if p, ok := project_ray_plane(cam.pos, ray, {0, -1, 0}, {0, -2, 0}); ok {
-            pos := cam.pos + p*ray
-            pos += {0, 10, 0}
-
-            box := entity.new(pos = cam.pos, scale = {1, 1, 1})
-            append(&render.meshes, render.Mesh{entity_id = box, color = {0, 1, 1, 1}})
-            physics.bodies_create(box, .Box, mass = 5, vel = pos - cam.pos)
-        }
+        shoot_random_box({f32(x), f32(y)}, {f32(width), f32(height)})
     }
 }
 
@@ -242,6 +229,27 @@ handle_input :: proc(w: glfw.WindowHandle, dt: f32) {
     vertical := int(glfw.GetKey(w, glfw.KEY_E) == glfw.PRESS) -
                 int(glfw.GetKey(w, glfw.KEY_Q) == glfw.PRESS)
     cam.pos.y += f32(vertical) * cam.speed * dt
+}
+
+shoot_random_box :: proc(cursor, window_size: glm.vec2) {
+    // Camera position will be cube spawn point. Move it forward temporarily to
+    // make it look better.
+    cam.pos += 2*cam.forward
+    defer cam.pos -= 2*cam.forward
+
+    ray := mouse_to_ray(cam, cursor, window_size)
+
+    if p, ok := project_ray_plane(cam.pos, ray, {0, -1, 0}, {0, -2, 0}); ok {
+        scale := random.vec3() * 1 + 0.5
+        mass := scale.x * scale.y * scale.z
+
+        color := random.vec3().rgbr
+        color.a = 1
+
+        box := entity.new(pos = cam.pos, scale = scale, orientation = random.quat())
+        append(&render.meshes, render.Mesh{entity_id = box, color = color})
+        physics.bodies_create(box, .Box, mass = mass, vel = p * ray)
+    }
 }
 
 project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.vec3, bool) {
