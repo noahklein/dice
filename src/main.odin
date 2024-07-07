@@ -140,16 +140,16 @@ main :: proc() {
 init_entities :: proc() {
     floor := entity.new(pos = {0, -5, 0}, scale = {100, 10, 100})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
-    append(&physics.bodies, physics.Body{ entity_id = floor, shape = .Box, static = true })
+    physics.bodies_create(floor, .Box)
 
     box1 := entity.new(pos = {0, 20, 0})
     append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
-    append(&physics.bodies, physics.Body{entity_id = box1, shape = .Box, mass = 1 })
+    physics.bodies_create(box1, .Box, mass = 1)
 
-    box2 := entity.new(pos = {10, 20, 0}, scale = {2, 1, 2})
+    box2 := entity.new(pos = {10, 20, 0}, scale = {3, 1, 3})
     append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
     // append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 2, vel = {-1, 0, 0}, angular_vel = {glm.PI / 4, glm.PI / 2, 0}})
-    append(&physics.bodies, physics.Body{entity_id = box2, shape = .Box, mass = 4, vel = {-2, 0, 0} })
+    physics.bodies_create(box2, .Box, mass = 9, vel = {-2, 0, 0})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
