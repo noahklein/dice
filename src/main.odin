@@ -90,13 +90,15 @@ main :: proc() {
         glfw.PollEvents()
 
         now := f32(glfw.GetTime())
-        dt := min(timescale * (now - prev_time), 0.05)
+        dt := min((now - prev_time), 0.05)
         prev_time = now
 
         handle_input(window, dt)
         if !physics_paused {
-            physics.bodies_update(dt)
+            physics.bodies_update(timescale * dt)
         }
+
+        update_farkle(dt)
 
         if frames % 100 == 0 {
             fmt.println(farkle.round_score_held_dice())
@@ -260,20 +262,6 @@ shoot_random_box :: proc(cursor, window_size: glm.vec2) {
         box := entity.new(pos = cam.pos, scale = scale, orientation = random.quat())
         append(&render.meshes, render.Mesh{entity_id = box, color = color, tex_unit = 1})
         physics.bodies_create(box, .Box, mass = mass, vel = p * ray)
-    }
-}
-
-throw_dice :: proc() {
-    SPAWN_POINT :: glm.vec3{0, 10, 10}
-    for die in farkle.round.dice {
-        ent := entity.get(die.entity_id)
-        ent.pos = SPAWN_POINT - 3*random.vec3()
-        ent.orientation = random.quat()
-
-        for &b in physics.bodies do if b.entity_id == die.entity_id {
-            b.vel = {0, 0, -30}
-            b.angular_vel = 0
-        }
     }
 }
 
