@@ -38,15 +38,11 @@ round_score_held_dice :: proc() -> (HandType, int) {
     max_pip: int
     for die in round.dice do if die.held {
         pip_value := die_facing_up(entity.get(die.entity_id).orientation)
-
-        if pip_value not_in pip_counts do pip_counts[pip_value] = 0
-        pip_counts[pip_value] += 1
-
-        if pip_value == 0 {
-            // @TODO: handle bad dice, apply impulse.
-        }
-
+        pip_counts[pip_value] = pip_counts[pip_value] + 1
         max_pip = max(max_pip, pip_value)
+
+        if pip_value == 0 { // @TODO: handle bad dice, apply impulse.
+        }
     }
 
     // Check for straights.
@@ -70,8 +66,8 @@ round_score_held_dice :: proc() -> (HandType, int) {
     }
 
     loose_change: int
-    if kind_pip != 1 do loose_change += 100 * (pip_counts[1] or_else 0)
-    if kind_pip != 5 do loose_change +=  50 * (pip_counts[5] or_else 0)
+    if kind_pip != 1 || max_count < 3 do loose_change += 100 * (pip_counts[1] or_else 0)
+    if kind_pip != 5 || max_count < 3 do loose_change +=  50 * (pip_counts[5] or_else 0)
 
     switch max_count {
         case 6: return .SixOfAKind , 3000

@@ -77,6 +77,8 @@ main :: proc() {
     init_entities()
     init_camera(1600.0 / 900.0)
 
+    frames := 0
+
     for !glfw.WindowShouldClose(window) {
         defer {
             glfw.SwapBuffers(window)
@@ -84,6 +86,7 @@ main :: proc() {
             free_all(context.temp_allocator)
         }
 
+        frames += 1
         glfw.PollEvents()
 
         now := f32(glfw.GetTime())
@@ -95,7 +98,9 @@ main :: proc() {
             physics.bodies_update(dt)
         }
 
-        fmt.println(farkle.round_score_held_dice())
+        if frames % 100 == 0 {
+            fmt.println(farkle.round_score_held_dice())
+        }
 
         gl.ClearColor(0, 0, 0, 1)
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -109,20 +114,16 @@ main :: proc() {
         render.setFloat3(shader.id, "uCamPos", cam.pos)
         render.setIntArray(shader.id, "uTextures", len(assets.texture_units), &assets.texture_units[0])
         render.setStruct(shader.id, "uLight", render.Light, render.Light{
-            position = 5,
-            direction = {0, 0, 1},
-
-            ambient = 0.5,
-            diffuse = 0.5,
-            specular = 0.75,
-
-            constant = 1,
-            linear = 0.09,
-            quadratic = 0.032,
-
-            cutoff = 12.5,
-            outer_cutoff = 17.5,
+            position = 5, direction = {0, 0, 1},
+            ambient = 0.5, diffuse = 0.5, specular = 0.75,
+            constant = 1, linear = 0.09, quadratic = 0.032,
+            cutoff = 12.5, outer_cutoff = 17.5,
         })
+
+        // Rebind textures to expected slots.
+        for tex in assets.textures {
+            gl.BindTextureUnit(tex.unit, tex.id)
+        }
 
         for m in render.meshes {
             color := m.color

@@ -1,7 +1,6 @@
 #type vertex
 #version 450 core
 
-
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNormal;
 layout (location = 2) in vec2 vTexCoord;
@@ -64,7 +63,7 @@ flat in vec4 color;
 uniform DirLight uDirLight;
 uniform Light uLight;
 uniform vec3 uCamPos;
-uniform sampler2D[20] uTextures;
+uniform sampler2D[10] uTextures;
 
 out vec4 finalColor;
 

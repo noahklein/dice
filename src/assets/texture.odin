@@ -5,7 +5,7 @@ import gl "vendor:OpenGL"
 
 Texture :: struct {
 	id, unit: u32,
-	format: u32,
+	format: TextureFormat,
 }
 
 TextureOptions :: struct {
@@ -50,9 +50,10 @@ texture_format :: proc(tf: TextureFormat) -> (u32, u32) {
 
 texture_init :: proc(unit: u32, opt: TextureOptions) -> Texture {
     tex: Texture
-	internal, format := texture_format(opt.format)
-	tex.format = format
+	tex.format = opt.format
 	tex.unit = unit
+
+	internal, _ := texture_format(opt.format)
 
 	gl.CreateTextures(gl.TEXTURE_2D, 1, &tex.id)
 	gl.TextureStorage2D(tex.id, 1, internal, opt.width, opt.height)
@@ -80,7 +81,8 @@ texture_load :: proc(unit: u32, path: cstring) -> Texture {
 		wrap_s = .REPEAT, wrap_t = .REPEAT,
 	})
 
-	gl.TextureSubImage2D(tex.id, 0, 0, 0, width, height, tex.format, gl.UNSIGNED_BYTE, img)
+	_, format := texture_format(tex.format)
+	gl.TextureSubImage2D(tex.id, 0, 0, 0, width, height, format, gl.UNSIGNED_BYTE, img)
 
 	return tex
 }
@@ -101,7 +103,7 @@ texture_init_white :: proc(unit: u32) -> Texture {
         min_filter = .LINEAR, mag_filter = .NEAREST,
         wrap_s = .REPEAT, wrap_t = .REPEAT,
     })
-    internal, format := texture_format(FORMAT)
+    _, format := texture_format(FORMAT)
     pixels := [?]u32{0xFFFFFFFF}
     gl.TextureSubImage2D(tex.id, 0, 0, 0, 1, 1, format, gl.UNSIGNED_BYTE, &pixels[0])
 
