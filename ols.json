@@ -10,7 +10,7 @@
             "path": "/home/noah/odin/vendor"
         }
     ],
-    "checker_args": "-debug -strict-style -vet-unused",
+    "checker_args": "-debug -vet-style -vet-semicolon -vet-unused",
     "enable_document_symbols": true,
     "enable_hover": true,
     "enable_snippets": true,
