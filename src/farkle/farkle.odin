@@ -16,7 +16,7 @@ DieType :: enum { D6 }
 Die :: struct {
     entity_id: entity.ID,
     type: DieType,
-    held: bool,
+    held, used: bool,
 }
 
 HandType :: enum {
@@ -35,7 +35,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
 
     pip_counts: map[int]int // pip => count
     max_pip: int
-    for die in round.dice do if !held_only || die.held {
+    for die in round.dice do if !die.used && (!held_only || die.held) {
         pip_value := die_facing_up(entity.get(die.entity_id).orientation)
         pip_counts[pip_value] = pip_counts[pip_value] + 1
         max_pip = max(max_pip, pip_value)

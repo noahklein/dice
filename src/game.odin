@@ -12,6 +12,9 @@ dice_rolling_timer: f32
 rolling_quiet_time: f32
 farkle_state := FarkleState.RoundStart
 
+holding_hand: farkle.HandType
+holding_score: int
+
 FarkleState :: enum {
     RoundStart,
     ReadyToThrow,
@@ -33,7 +36,7 @@ update_farkle :: proc(dt: f32) {
         // Wait for dice to slow down.
         total_vel: f32
         total_dice: int
-        for d in farkle.round.dice {
+        for d in farkle.round.dice do if !d.used {
             for &b in physics.bodies do if b.entity_id == d.entity_id {
                 total_vel += glm.dot(b.vel, b.vel)
                 total_vel += glm.dot(b.angular_vel, b.angular_vel)
@@ -61,6 +64,10 @@ update_farkle :: proc(dt: f32) {
             if hand_type == .Invalid { // Bust
                 farkle.round.turns_remaining -= 1
                 // @TODO: check for loss.
+                for &d in farkle.round.dice {
+                    d.held = false
+                    d.used = false
+                }
 
                 farkle_state = .ReadyToThrow
                 return
@@ -75,8 +82,27 @@ update_farkle :: proc(dt: f32) {
             if d.entity_id == hovered_ent_id {
                 d.held = !d.held
 
-                fmt.println("held score", farkle.round_score_dice(held_only = true))
+                holding_hand, holding_score = farkle.round_score_dice(held_only = true)
             }
+        }
+
+        if .Confirm in input && holding_hand != .Invalid {
+            for &d in farkle.round.dice do if d.held {
+                d.held = false
+                d.used = true
+            }
+
+            farkle.round.score += holding_score
+
+            used_count: int
+            for d in farkle.round.dice do if d.used { used_count += 1 }
+
+            if used_count == len(farkle.round.dice) {
+                // Used all dice, get them all back.
+                for &d in farkle.round.dice do d.used = false
+            }
+
+            farkle_state = .ReadyToThrow
         }
     }
 }
@@ -90,6 +116,10 @@ throw_dice :: proc() {
     SPAWN_POINT :: glm.vec3{0, 10, 10}
     for die in farkle.round.dice {
         ent := entity.get(die.entity_id)
+        if die.used {
+            ent.pos = -100 // Hide it somewhere no one will find it.
+            continue
+        }
         ent.pos = SPAWN_POINT - 3*random.vec3()
         ent.orientation = random.quat()
 

@@ -26,7 +26,7 @@ mouse_coords: glm.vec2
 mouse_pick: render.MousePicking
 hovered_ent_id: entity.ID
 
-Input :: enum { Fire }
+Input :: enum { Fire, Confirm }
 input: bit_set[Input]
 
 main :: proc() {
@@ -259,6 +259,8 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             physics_paused = false
             farkle_state = .ReadyToThrow
             throw_dice()
+        case glfw.KEY_R:
+            input += {.Confirm}
     }
 }
 
