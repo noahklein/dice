@@ -42,7 +42,7 @@ main :: proc() {
         fmt.eprintln("Failed to create window")
         return
     }
-    defer glfw.DestroyWindow(window) 
+    defer glfw.DestroyWindow(window)
     glfw.MakeContextCurrent(window)
 
     glfw.SetKeyCallback(window, key_callback)
@@ -76,7 +76,7 @@ main :: proc() {
         width, height := glfw.GetWindowSize(window)
         screen = {f32(width), f32(height)}
     }
-    
+
     // Setup quad renderer.
     quad_shader, quad_shader_err := render.shader_load("src/shaders/quad.glsl")
     if quad_shader_err != nil {
@@ -131,7 +131,7 @@ main :: proc() {
         if frames % 250 == 0 {
             fmt.println(farkle.round_score_dice())
         }
-    
+
         // Draw scene to mouse picking framebuffer.
         gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)
         gl.Enable(gl.CULL_FACE)
@@ -330,5 +330,5 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
     }
 
     t := glm.dot(p_center - r_origin, p_norm) / denom
-    return t, t > 0 
+    return t, t > 0
 }

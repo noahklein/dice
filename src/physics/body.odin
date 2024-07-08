@@ -22,7 +22,7 @@ Body :: struct {
     entity_id: entity.ID,
     inv_mass: f32,
     vel, force: glm.vec3,
-    angular_vel, torque: glm.vec3, 
+    angular_vel, torque: glm.vec3,
 
     at_rest: bool,
     restitution: f32,
@@ -93,7 +93,7 @@ bodies_fixed_update :: proc() {
             // Integrate angular velocity.
             a := body.angular_vel * (DT / 2)
             omega: glm.quat = quaternion(real = 0, imag = a.x, jmag = a.y, kmag = a.z)
-            ent.orientation += omega * ent.orientation 
+            ent.orientation += omega * ent.orientation
             // Without normalization orientation's magnitude will keep growing and start to skew the object.
             ent.orientation = glm.normalize_quat(ent.orientation)
         }
@@ -158,7 +158,7 @@ resolve_collision :: proc(collision_info: Collision) {
     J /= (total_mass + ang_effect)
 
     bodyA.vel -= J * bodyA.inv_mass
-    bodyB.vel += J * bodyB.inv_mass 
+    bodyB.vel += J * bodyB.inv_mass
 
     bodyA.angular_vel += bodyA.inv_inertia_tensor * glm.cross(cpA, -J)
     bodyB.angular_vel += bodyB.inv_inertia_tensor * glm.cross(cpB,  J)

@@ -1,4 +1,4 @@
-package assets 
+package assets
 
 import "vendor:stb/image"
 import gl "vendor:OpenGL"

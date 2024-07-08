@@ -23,7 +23,7 @@ update_farkle :: proc(dt: f32) {
     switch farkle_state {
     case .RoundStart:
         farkle.round.turns_remaining = 3
-        farkle_state = .ReadyToThrow 
+        farkle_state = .ReadyToThrow
     case .ReadyToThrow:
         physics_paused = false
         if .Fire in input do throw_dice()

@@ -12,7 +12,7 @@ out vec3 color;
 void main() {
     gl_Position = uProjection * uView * vec4(vPos, 1.0);
     color = vColor;
-}  
+}
 
 #type fragment
 #version 450 core

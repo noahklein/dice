@@ -1,4 +1,4 @@
-package render 
+package render
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"

@@ -16,7 +16,7 @@ init :: proc() {
      for path, i in TEXTURE_PATHS {
         tex := texture_load(u32(i + 1), path)
         register_texture(tex)
-    } 
+    }
 }
 
 register_texture :: proc(tex: Texture) {

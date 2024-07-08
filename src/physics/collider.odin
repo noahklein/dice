@@ -16,7 +16,7 @@ Manifold :: struct {
     normal: glm.vec3,
     depth: f32,
     // Contacts are relative to centers of A and B. Actual contactA = contactA - A.pos. Same for B.
-    contactA, contactB: glm.vec3, 
+    contactA, contactB: glm.vec3,
 }
 
 Collider :: struct {

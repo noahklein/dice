@@ -51,11 +51,11 @@ struct Light {
 
 struct DirLight {
     vec3 direction;
-  
+
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-};  
+};
 
 in vec3 pos;
 in vec2 texCoord;
@@ -87,7 +87,7 @@ vec3 calcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     vec3 diffuse  = light.diffuse  * diff;
     vec3 specular = light.specular * spec;
     return (ambient + diffuse + specular);
-}  
+}
 
 vec3 calcPointLight(Light light, vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - pos);

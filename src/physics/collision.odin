@@ -136,7 +136,7 @@ support :: proc(a, b: Collider, dir: glm.vec3) -> (sp: SimplexPoint) {
     sp.a = furthest_point(a,  dir)
     sp.b = furthest_point(b, -dir)
     sp.p = sp.a - sp.b
-    return 
+    return
 }
 
 // Get the furthest point on a collider in a given direction.

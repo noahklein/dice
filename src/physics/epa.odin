@@ -6,7 +6,7 @@ CollisionManifold :: struct {
     normal: glm.vec3,
     depth: f32,
     // Contacts are relative to centers of A and B. Actual contactA = contactA - A.pos. Same for B.
-    contactA, contactB: glm.vec3, 
+    contactA, contactB: glm.vec3,
 }
 
 // Expanding Polytope Algorithm; expands the GJK simplex iteratively
@@ -21,7 +21,7 @@ epa :: proc(coll_a, coll_b: Collider, simplex: Simplex) -> Manifold {
     faces := make([dynamic]Face, 0, EPA_MAX_FACES)
     {
         // Get initial simplex faces.
-        a, b, c, d := simplex.points[0], simplex.points[1], simplex.points[2], simplex.points[3] 
+        a, b, c, d := simplex.points[0], simplex.points[1], simplex.points[2], simplex.points[3]
         append(&faces, new_face(a, b, c))
         append(&faces, new_face(a, c, d))
         append(&faces, new_face(a, d, b))
@@ -117,7 +117,7 @@ new_face :: proc(a, b, c: SimplexPoint) -> Face {
 collision_manifold :: proc(f: Face) -> Manifold {
     a, b, c := f.points[0], f.points[1], f.points[2]
     // Project origin onto triangle.
-    projection_point := plane_project(plane_from_tri(a.p, b.p, c.p), 0) 
+    projection_point := plane_project(plane_from_tri(a.p, b.p, c.p), 0)
     bary := barycentric(projection_point, a.p, b.p, c.p)
 
     // Do a linear combination of the barycentric coords and triangle support points.
@@ -155,7 +155,7 @@ plane_from_tri :: proc(a, b, c: glm.vec3) -> Plane {
     ac := c - a
 
     normal := glm.normalize(glm.cross(ab, ac))
-    return Plane{ normal = normal, distance = -glm.dot(ab, normal) }    
+    return Plane{ normal = normal, distance = -glm.dot(ab, normal) }
 }
 
 plane_project :: proc(plane: Plane, p: glm.vec3) -> glm.vec3 {
