@@ -245,14 +245,14 @@ shoot_random_box :: proc(cursor, window_size: glm.vec2) {
     ray := mouse_to_ray(cam, cursor, window_size)
 
     if p, ok := project_ray_plane(cam.pos, ray, {0, -1, 0}, {0, -2, 0}); ok {
-        scale := random.vec3() * 1 + 0.5
+        scale := glm.vec3(1)
         mass := scale.x * scale.y * scale.z
 
-        color := random.vec3().rgbr
+        color := 0.5 + 0.5*random.vec3().rgbr
         color.a = 1
 
         box := entity.new(pos = cam.pos, scale = scale, orientation = random.quat())
-        append(&render.meshes, render.Mesh{entity_id = box, color = color})
+        append(&render.meshes, render.Mesh{entity_id = box, color = color, tex_unit = 1})
         physics.bodies_create(box, .Box, mass = mass, vel = p * ray)
     }
 }
