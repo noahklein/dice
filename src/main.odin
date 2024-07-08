@@ -9,6 +9,7 @@ import "vendor:glfw"
 
 import "assets"
 import "entity"
+import "farkle"
 import "physics"
 import "random"
 import "render"
@@ -94,6 +95,8 @@ main :: proc() {
             physics.bodies_update(dt)
         }
 
+        fmt.println(farkle.round_score_held_dice())
+
         gl.ClearColor(0, 0, 0, 1)
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
         gl.Enable(gl.DEPTH_TEST)
@@ -142,16 +145,6 @@ main :: proc() {
             for c in physics.colliders {
                 render.draw_lines_aabb(c.aabb.min, c.aabb.max)
             }
-            {
-            got: ^entity.Entity
-            for b in physics.bodies do if b.inv_mass != 0 {
-                got = entity.get(b.entity_id)
-                break
-            }
-            rot := rotate_vector({0, 1, 0}, got.orientation)
-            fmt.println("dir", die_facing_up(got.orientation))
-            render.draw_line(got.pos, got.pos + 2*rot)
-            }
 
             render.lines_flush()
         }
@@ -159,7 +152,7 @@ main :: proc() {
 }
 
 init_entities :: proc() {
-    FLOOR_SIZE   :: 30
+    FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 30
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
@@ -180,17 +173,12 @@ init_entities :: proc() {
     create_wall({-FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
     create_wall({ FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
 
-    box1 := entity.new(pos = {0, 20, 0})
-    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}, tex_unit = 1})
-    physics.bodies_create(box1, .Box, mass = 1)
-
-    box2 := entity.new(pos = {10, 5, 0}, scale = {3, 2, 3})
-    append(&render.meshes, render.Mesh{entity_id = box2, color = {0, 1, 0, 1}})
-    physics.bodies_create(box2, .Box, mass = 9, vel = {0, 0, 0}, ang_vel = {1, 0, 0})
-
-    box3 := entity.new(pos = {-6, 0, 0}, scale = {1, 2, 1})
-    append(&render.meshes, render.Mesh{entity_id = box3, color = {0, 1, 1, 1}})
-    physics.bodies_create(box3, .Box, mass = 20, vel = {0, 10, 0})
+    for _, i in farkle.round.dice {
+        ent_id := entity.new()
+        append(&render.meshes, render.Mesh{entity_id = ent_id, color = {1, 0, 0, 1}, tex_unit = 1})
+        physics.bodies_create(ent_id, .Box, mass = 1)
+        farkle.round.dice[i] = farkle.Die{ entity_id = ent_id, type = .D6, held = true }
+    }
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
@@ -200,14 +188,15 @@ error_callback :: proc "c" (code: i32, desc: cstring) {
 
 key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
 	context = runtime.default_context()
-	if key == glfw.KEY_ESCAPE && action == glfw.PRESS {
-		glfw.SetWindowShouldClose(window, glfw.TRUE)
-	}
-    if key == glfw.KEY_LEFT_SHIFT && action == glfw.PRESS {
-        debug_draw = !debug_draw
-    }
-    if key == glfw.KEY_SPACE && action == glfw.PRESS {
-        physics_paused = !physics_paused
+    if action == glfw.PRESS do switch key {
+        case glfw.KEY_ESCAPE:
+            glfw.SetWindowShouldClose(window, glfw.TRUE)
+        case glfw.KEY_LEFT_SHIFT:
+            debug_draw = !debug_draw
+        case glfw.KEY_SPACE:
+            physics_paused = !physics_paused
+        case glfw.KEY_T:
+            throw_dice()
     }
 }
 
@@ -273,6 +262,20 @@ shoot_random_box :: proc(cursor, window_size: glm.vec2) {
     }
 }
 
+throw_dice :: proc() {
+    SPAWN_POINT :: glm.vec3{0, 10, 10}
+    for die in farkle.round.dice {
+        ent := entity.get(die.entity_id)
+        ent.pos = SPAWN_POINT - 3*random.vec3()
+        ent.orientation = random.quat()
+
+        for &b in physics.bodies do if b.entity_id == die.entity_id {
+            b.vel = {0, 0, -30}
+            b.angular_vel = 0
+        }
+    }
+}
+
 project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.vec3, bool) {
     denom := glm.dot(r_dir, p_norm)
     if denom <= 1e-4 {
@@ -281,33 +284,4 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
 
     t := glm.dot(p_center - r_origin, p_norm) / denom
     return t, t > 0 
-}
-
-// https://gamedev.stackexchange.com/a/50545
-rotate_vector :: proc(v: glm.vec3, q: glm.quat) -> glm.vec3 {
-    u := glm.vec3{imag(q), jmag(q), kmag(q)}
-    s := real(q)
-
-    return  2 * u * glm.dot(u, v) +
-        v * (s*s - glm.dot(u, u)) +
-        2 * s * glm.cross(u, v)
-}
-
-die_facing_up :: proc(orientation: glm.quat) -> int {
-    UP :: glm.vec3{0, 1, 0}
-    T  :: 0.75 // Threshold for cosine similarity.
-
-    dir := rotate_vector({0, 1, 0}, orientation)
-    if glm.dot( dir, UP) > T do return 5
-    if glm.dot(-dir, UP) > T do return 2
-
-    dir = rotate_vector({1, 0, 0}, orientation)
-    if glm.dot( dir, UP) > T do return 6
-    if glm.dot(-dir, UP) > T do return 1
-
-    dir = rotate_vector({0, 0, 1}, orientation)
-    if glm.dot( dir, UP) > T do return 3
-    if glm.dot(-dir, UP) > T do return 4
-
-    return 0 // No valid side.
 }
