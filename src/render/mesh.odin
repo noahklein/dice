@@ -8,6 +8,7 @@ meshes: [dynamic]Mesh
 Mesh :: struct {
     entity_id: entity.ID,
     color: [4]f32,
+    tex_unit: u32,
     // @TODO: renderer id to support multiple mesh renderers.
 }
 
@@ -25,7 +26,7 @@ Vertex :: struct {
 }
 
 Instance :: struct {
-    texture: [2]u32,
+    texture: u32,
     color: [4]f32,
     transform: matrix[4, 4]f32,
 }
@@ -66,7 +67,7 @@ renderer_init :: proc(obj: Obj) -> Renderer {
     gl.BufferData(gl.ARRAY_BUFFER, MAX_INSTANCES * size_of(Instance), nil, gl.DYNAMIC_DRAW)
 
     gl.EnableVertexAttribArray(3)
-    gl.VertexAttribIPointer(3, 2, gl.UNSIGNED_INT, size_of(Instance), offset_of(Instance, texture))
+    gl.VertexAttribIPointer(3, 1, gl.UNSIGNED_INT, size_of(Instance), offset_of(Instance, texture))
     gl.VertexAttribDivisor(3, 1)
     gl.EnableVertexAttribArray(4)
     gl.VertexAttribPointer(4, 4, gl.FLOAT, false, size_of(Instance), offset_of(Instance, color))

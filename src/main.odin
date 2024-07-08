@@ -7,6 +7,7 @@ import glm "core:math/linalg/glsl"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
+import "assets"
 import "entity"
 import "physics"
 import "random"
@@ -44,6 +45,8 @@ main :: proc() {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
     gl.Enable(gl.CULL_FACE)
+
+    assets.init()
 
     shader, err := render.shader_load("src/shaders/cube.glsl")
     if err != nil {
@@ -98,6 +101,7 @@ main :: proc() {
         render.setMat4(shader.id, "uView", &view[0, 0])
         render.setMat4(shader.id, "uProjection", &proj[0, 0])
         render.setFloat3(shader.id, "uCamPos", cam.pos)
+        render.setIntArray(shader.id, "uTextures", len(assets.texture_units), &assets.texture_units[0])
         render.setStruct(shader.id, "uLight", render.Light, render.Light{
             position = 5,
             direction = {0, 0, 1},
@@ -122,6 +126,7 @@ main :: proc() {
             }
             render.renderer_draw(&mesh, {
                 transform = entity.transform(m.entity_id),
+                texture = m.tex_unit,
                 color = color,
             })
         }
@@ -163,7 +168,7 @@ init_entities :: proc() {
     create_wall({ FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
 
     box1 := entity.new(pos = {0, 20, 0})
-    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}})
+    append(&render.meshes, render.Mesh{entity_id = box1, color = {1, 0, 0, 1}, tex_unit = 1})
     physics.bodies_create(box1, .Box, mass = 1)
 
     box2 := entity.new(pos = {10, 5, 0}, scale = {3, 2, 3})
