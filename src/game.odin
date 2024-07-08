@@ -19,8 +19,6 @@ FarkleState :: enum {
     Rolling,
 }
 
-Input :: enum { Fire }
-
 update_farkle :: proc(dt: f32) {
     switch farkle_state {
     case .RoundStart:
@@ -67,7 +65,6 @@ update_farkle :: proc(dt: f32) {
             fmt.println("bust")
             farkle_state = .ReadyToThrow
         }
-        fmt.println("choose dice", hand_type, score)
     }
 }
 

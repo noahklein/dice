@@ -79,3 +79,58 @@ lines_flush :: proc() {
 
     clear(&line_renderer.lines)
 }
+
+QuadRenderer :: struct {
+    vao, vbo: u32,
+    shader: Shader,
+    quad: [6]QuadVertex,
+}
+
+QuadVertex :: struct {
+    pos, tex_coord: glm.vec2,
+}
+
+quad_renderer : QuadRenderer
+
+quad_renderer_init :: proc(shader: Shader) {
+    qr : QuadRenderer
+    gl.CreateVertexArrays(1, &qr.vao)
+    gl.BindVertexArray(qr.vao)
+    defer gl.BindVertexArray(0)
+
+    qr.shader = shader
+    qr.quad = {
+        {pos = { 1, -1}, tex_coord = {1, 0}},
+        {pos = {-1, -1}, tex_coord = {0, 0}},
+        {pos = {-1,  1}, tex_coord = {0, 1}},
+
+        {pos = { 1,  1}, tex_coord = {1, 1}},
+        {pos = { 1, -1}, tex_coord = {1, 0}},
+        {pos = {-1,  1}, tex_coord = {0, 1}},
+    }
+
+    gl.CreateBuffers(1, &qr.vbo)
+    gl.BindBuffer(gl.ARRAY_BUFFER, qr.vbo)
+    gl.BufferData(gl.ARRAY_BUFFER, 6 * size_of(QuadVertex), &qr.quad, gl.STATIC_DRAW)
+
+    gl.EnableVertexAttribArray(0)
+    gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, pos))
+    gl.EnableVertexAttribArray(1)
+    gl.VertexAttribPointer(1, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, tex_coord))
+
+    quad_renderer = qr
+}
+
+draw_quad :: proc(tex: u32) {
+    // gl.BindTextureUnit(0, tex)
+    gl.BindTexture(gl.TEXTURE_2D, tex)
+    gl.UseProgram(quad_renderer.shader.id)
+    setInt(quad_renderer.shader.id, "tex", 0)
+
+    gl.BindVertexArray(quad_renderer.vao)
+    gl.BindBuffer(gl.ARRAY_BUFFER, quad_renderer.vbo)
+
+    // gl.BufferSubData(gl.ARRAY_BUFFER, 0, 6 * size_of(QuadVertex), &quad_renderer.quad[0])
+
+    gl.DrawArrays(gl.TRIANGLES, 0, 6)
+}

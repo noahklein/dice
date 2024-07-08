@@ -21,6 +21,14 @@ cursor_hidden: bool
 debug_draw: bool
 physics_paused: bool
 
+screen: glm.vec2
+mouse_coords: glm.vec2
+mouse_pick: render.MousePicking
+hovered_ent_id: entity.ID
+
+Input :: enum { Fire }
+input: bit_set[Input]
+
 main :: proc() {
     if !glfw.Init() {
         fmt.eprintln("Failed to initialize GLFW")
@@ -64,7 +72,21 @@ main :: proc() {
     mesh := render.renderer_init(cube_obj)
     defer render.renderer_deinit(&mesh)
 
+    {
+        width, height := glfw.GetWindowSize(window)
+        screen = {f32(width), f32(height)}
+    }
+    
+    // Setup quad renderer.
+    quad_shader, quad_shader_err := render.shader_load("src/shaders/quad.glsl")
+    if quad_shader_err != nil {
+        fmt.eprintln("Failed to load quad shader:", err)
+        return
+    }
+    render.quad_renderer_init(quad_shader)
+
     render.shapes_init()
+    mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
 
     physics.shapes[.Box].vertex_count = len(cube_obj.vertices)
     for v, i in cube_obj.vertices {
@@ -83,10 +105,11 @@ main :: proc() {
         defer {
             glfw.SwapBuffers(window)
             render.watch(&shader)
+            render.watch(&quad_shader)
+            input = {}
             free_all(context.temp_allocator)
         }
 
-        frames += 1
         glfw.PollEvents()
 
         now := f32(glfw.GetTime())
@@ -98,11 +121,21 @@ main :: proc() {
             physics.bodies_update(timescale * dt)
         }
 
-        update_farkle(dt)
+        hovered_ent_id = entity.ID(render.mouse_picking_read(mouse_pick, mouse_coords))
+        if hovered_ent_id <= 0 || hovered_ent_id > 99999 { // @Hack: should clamp to valid IDs.
+			hovered_ent_id = -1
+		}
 
+        update_farkle(dt)
+        frames += 1
         if frames % 100 == 0 {
             fmt.println(farkle.round_score_held_dice())
+            fmt.println("hovered", hovered_ent_id)
         }
+    
+        // Draw scene to mouse picking framebuffer.
+        gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)
+        gl.Enable(gl.CULL_FACE)
 
         gl.ClearColor(0, 0, 0, 1)
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -137,10 +170,21 @@ main :: proc() {
                 transform = entity.transform(m.entity_id),
                 texture = m.tex_unit,
                 color = color,
+                ent_id = m.entity_id,
             })
         }
 
         render.renderer_flush(&mesh)
+
+        {
+            // Draw mousepicking texture to screen.
+            gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+			gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+			gl.Clear(gl.COLOR_BUFFER_BIT)
+			gl.Disable(gl.DEPTH_TEST)
+            gl.Disable(gl.CULL_FACE)
+			render.draw_quad(mouse_pick.tex)
+        }
 
         if debug_draw {
             render.lines_begin(&proj, &view)
@@ -210,6 +254,9 @@ mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
         on_mouse_move(&cam, {f32(xpos), f32(ypos)})
         return
     }
+
+    mouse_coords.x = f32(xpos)
+    mouse_coords.y = screen.y - f32(ypos)
 }
 
 mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i32) {
@@ -226,6 +273,7 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
     if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
         x, y := glfw.GetCursorPos(w)
         width, height := glfw.GetWindowSize(w)
+        input += {.Fire}
         shoot_random_box({f32(x), f32(y)}, {f32(width), f32(height)})
     }
 }

@@ -28,6 +28,7 @@ Vertex :: struct {
 Instance :: struct {
     texture: u32,
     color: [4]f32,
+    ent_id:  i32, // For mouse picking
     transform: matrix[4, 4]f32,
 }
 
@@ -73,8 +74,12 @@ renderer_init :: proc(obj: Obj) -> Renderer {
     gl.VertexAttribPointer(4, 4, gl.FLOAT, false, size_of(Instance), offset_of(Instance, color))
     gl.VertexAttribDivisor(4, 1)
 
+    gl.EnableVertexAttribArray(5)
+    gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Instance), offset_of(Instance, ent_id))
+    gl.VertexAttribDivisor(5, 1)
+
     for i in 0..<4 {
-        id := u32(5 + i)
+        id := u32(6 + i)
         gl.EnableVertexAttribArray(id)
         offset := offset_of(Instance, transform) + (uintptr(i * 4) * size_of(f32))
         gl.VertexAttribPointer(id, 4, gl.FLOAT, false, size_of(Instance), offset)

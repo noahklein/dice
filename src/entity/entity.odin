@@ -2,7 +2,7 @@ package entity
 
 import glm "core:math/linalg/glsl"
 
-ID :: uint
+ID :: i32
 
 entities := make([dynamic]Entity, 0, 128)
 deleted  := make([dynamic]ID, 0, 128)
@@ -21,7 +21,7 @@ new :: proc(pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) -
     }
 
     append(&entities, ent)
-    return len(entities) - 1
+    return i32(len(entities) - 1)
 }
 
 delete :: proc(id: ID) {

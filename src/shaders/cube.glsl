@@ -7,7 +7,8 @@ layout (location = 2) in vec2 vTexCoord;
 layout (location = 3) in int  vTexUnit;
 
 layout (location = 4) in vec4 vColor;
-layout (location = 5) in mat4 vTransform;
+layout (location = 5) in int vEntityId;
+layout (location = 6) in mat4 vTransform;
 
 uniform mat4 uView;
 uniform mat4 uProjection;
@@ -17,6 +18,7 @@ out vec2 texCoord;
 flat out int texUnit;
 out vec3 normal;
 flat out vec4 color;
+flat out int entityId;
 
 void main() {
     pos = (vTransform * vec4(vPos, 1)).xyz;
@@ -24,6 +26,7 @@ void main() {
     texUnit = vTexUnit;
     normal = mat3(transpose(inverse(vTransform))) * vNormal;
     color = vColor;
+    entityId = vEntityId;
     gl_Position = uProjection * uView * vec4(pos, 1);
 }
 
@@ -59,13 +62,15 @@ in vec2 texCoord;
 flat in int  texUnit;
 in vec3 normal;
 flat in vec4 color;
+flat in int entityId;
 
 uniform DirLight uDirLight;
 uniform Light uLight;
 uniform vec3 uCamPos;
 uniform sampler2D[10] uTextures;
 
-out vec4 finalColor;
+layout (location = 0) out vec4 outColor;
+layout (location = 1) out int outEntityId;
 
 const float shininess = 1; // @TODO: make configurable.
 
@@ -134,6 +139,8 @@ void main() {
     vec3 result = calcDirLight(dirLight, norm, viewDir);
     result += calcPointLight(uLight, norm, viewDir);
 
-    finalColor = color * vec4(result, 1);
-    finalColor *= texture(uTextures[texUnit], texCoord);
+    outColor = color * vec4(result, 1);
+    outColor *= texture(uTextures[texUnit], texCoord);
+
+    outEntityId = entityId;
 }
