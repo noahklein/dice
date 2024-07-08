@@ -31,12 +31,12 @@ HandType :: enum {
 }
 
 // @TODO: Check for hand legality.
-round_score_held_dice :: proc() -> (HandType, int) {
+round_score_dice :: proc(held_only := false) -> (HandType, int) {
     context.allocator = context.temp_allocator
 
     pip_counts: map[int]int // pip => count
     max_pip: int
-    for die in round.dice do if die.held {
+    for die in round.dice do if !held_only || die.held {
         pip_value := die_facing_up(entity.get(die.entity_id).orientation)
         pip_counts[pip_value] = pip_counts[pip_value] + 1
         max_pip = max(max_pip, pip_value)

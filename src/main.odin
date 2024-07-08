@@ -128,9 +128,8 @@ main :: proc() {
 
         update_farkle(dt)
         frames += 1
-        if frames % 100 == 0 {
-            fmt.println(farkle.round_score_held_dice())
-            fmt.println("hovered", hovered_ent_id)
+        if frames % 250 == 0 {
+            fmt.println(farkle.round_score_dice())
         }
     
         // Draw scene to mouse picking framebuffer.
@@ -171,6 +170,20 @@ main :: proc() {
                 texture = m.tex_unit,
                 color = color,
                 ent_id = m.entity_id,
+            })
+        }
+
+        // Draw outline around held dice.
+        for d in farkle.round.dice do if d.held {
+            ent := entity.get(d.entity_id)
+            ent.scale += 0.05
+            defer ent.scale -= 0.05
+
+            render.renderer_draw(&mesh, {
+                transform = entity.transform(d.entity_id),
+                texture = 0,
+                color = {1, 1, 1, 0.25},
+                ent_id = d.entity_id,
             })
         }
 
@@ -224,7 +237,7 @@ init_entities :: proc() {
         ent_id := entity.new()
         append(&render.meshes, render.Mesh{entity_id = ent_id, color = {1, 0, 0, 1}, tex_unit = 1})
         physics.bodies_create(ent_id, .Box, mass = 1)
-        farkle.round.dice[i] = farkle.Die{ entity_id = ent_id, type = .D6, held = true }
+        farkle.round.dice[i] = farkle.Die{ entity_id = ent_id, type = .D6 }
     }
 }
 
@@ -242,8 +255,8 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             debug_draw = !debug_draw
         case glfw.KEY_SPACE:
             physics_paused = !physics_paused
-        case glfw.KEY_T:
-            throw_dice()
+        // case glfw.KEY_T:
+            // throw_dice()
     }
 }
 
@@ -271,10 +284,7 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
     }
 
     if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
-        x, y := glfw.GetCursorPos(w)
-        width, height := glfw.GetWindowSize(w)
         input += {.Fire}
-        shoot_random_box({f32(x), f32(y)}, {f32(width), f32(height)})
     }
 }
 

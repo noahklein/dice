@@ -9,7 +9,7 @@ import "physics"
 import "random"
 
 dice_rolling_timer: f32
-rolling_quiet_frames: int
+rolling_quiet_time: f32
 farkle_state := FarkleState.RoundStart
 
 FarkleState :: enum {
@@ -26,13 +26,14 @@ update_farkle :: proc(dt: f32) {
         farkle_state = .ReadyToThrow 
     case .ReadyToThrow:
         physics_paused = false
+        if .Fire in input do throw_dice()
     case .Rolling:
         dice_rolling_timer += dt
 
         // Wait for dice to slow down.
         total_vel: f32
         total_dice: int
-        for d in farkle.round.dice do if !d.held {
+        for d in farkle.round.dice {
             for &b in physics.bodies do if b.entity_id == d.entity_id {
                 total_vel += glm.dot(b.vel, b.vel)
                 total_vel += glm.dot(b.angular_vel, b.angular_vel)
@@ -44,26 +45,36 @@ update_farkle :: proc(dt: f32) {
             }
         }
 
-        // Count frames of quietude.
-        if total_vel == 0 || total_vel < 0.1e-22 * f32(total_dice) {
-            rolling_quiet_frames += 1
+        // Count period of quietude.
+        if total_vel == 0 || total_vel < 0.1 * f32(total_dice) {
+            rolling_quiet_time += dt
         } else {
-            rolling_quiet_frames = 0 // Tranquility broken, start counting again.
+            rolling_quiet_time = 0 // Tranquility broken, start counting again.
         }
 
         // Serenity now, start scoring.
-        if rolling_quiet_frames > 400 {
-            rolling_quiet_frames = 0
+        if rolling_quiet_time > 2 {
+            fmt.println("all quiet")
+            rolling_quiet_time = 0
+
+            hand_type, _ := farkle.round_score_dice()
+            if hand_type == .Invalid { // Bust
+                farkle.round.turns_remaining -= 1
+                // @TODO: check for loss.
+
+                farkle_state = .ReadyToThrow
+                return
+            }
+
             farkle_state = .HoldingDice
         }
     case .HoldingDice:
         physics_paused = true
 
-        hand_type, score := farkle.round_score_held_dice()
-        if hand_type == .Invalid { // Bust
-            farkle.round.turns_remaining -= 1
-            fmt.println("bust")
-            farkle_state = .ReadyToThrow
+        if .Fire in input do for &d in farkle.round.dice {
+            if d.entity_id == hovered_ent_id {
+                d.held = !d.held
+            }
         }
     }
 }
