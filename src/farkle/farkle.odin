@@ -30,7 +30,6 @@ HandType :: enum {
     LooseChange, // Only 1s and 5s scored.
 }
 
-// @TODO: Check for hand legality.
 round_score_dice :: proc(held_only := false) -> (HandType, int) {
     context.allocator = context.temp_allocator
 
@@ -54,6 +53,14 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         }
         max_streak = max(max_streak, end - start)
     }
+    if held_only && max_streak >= 5 {
+        // No duplicates allowed in straight.
+        for pip, count in pip_counts {
+            if pip == 1 || pip == 5 do continue
+            if count > 2 do return .Invalid, 0
+        }
+    }
+
     switch max_streak {
         case 5: return .SmallStraight, 1000
         case 6: return .LargeStraight, 2000
@@ -69,6 +76,13 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
     if kind_pip != 1 || max_count < 3 do loose_change += 100 * (pip_counts[1] or_else 0)
     if kind_pip != 5 || max_count < 3 do loose_change +=  50 * (pip_counts[5] or_else 0)
 
+    if held_only && max_count >= 3 {
+        for pip, count in pip_counts {
+            if pip == kind_pip || pip == 1 || pip == 5 do continue
+            if count != 0 do return .Invalid, 0
+        }
+    }
+
     switch max_count {
         case 6: return .SixOfAKind , 3000
         case 5: return .FiveOfAKind, 2000 + loose_change
@@ -78,7 +92,13 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
             return .ThreeOfAKind, score + loose_change
     }
 
-    if loose_change > 0 do return .LooseChange, loose_change
+    if loose_change > 0 {
+        if held_only do for pip in pip_counts {
+            if pip == 1 || pip == 5 do continue
+            return .Invalid, 0
+        }
+        return .LooseChange, loose_change
+    }
 
     return .Invalid, 0
 }

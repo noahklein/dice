@@ -255,8 +255,10 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             debug_draw = !debug_draw
         case glfw.KEY_SPACE:
             physics_paused = !physics_paused
-        // case glfw.KEY_T:
-            // throw_dice()
+        case glfw.KEY_T:
+            physics_paused = false
+            farkle_state = .ReadyToThrow
+            throw_dice()
     }
 }
 

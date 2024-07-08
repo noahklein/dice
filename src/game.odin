@@ -74,6 +74,8 @@ update_farkle :: proc(dt: f32) {
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
                 d.held = !d.held
+
+                fmt.println("held score", farkle.round_score_dice(held_only = true))
             }
         }
     }
