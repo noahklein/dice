@@ -18,6 +18,7 @@ GL_MINOR_VERSION :: 5
 
 cursor_hidden: bool
 debug_draw: bool
+physics_paused: bool
 
 main :: proc() {
     if !glfw.Init() {
@@ -89,7 +90,9 @@ main :: proc() {
         prev_time = now
 
         handle_input(window, dt)
-        physics.bodies_update(dt)
+        if !physics_paused {
+            physics.bodies_update(dt)
+        }
 
         gl.ClearColor(0, 0, 0, 1)
         gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -138,6 +141,16 @@ main :: proc() {
             physics.colliders_update()
             for c in physics.colliders {
                 render.draw_lines_aabb(c.aabb.min, c.aabb.max)
+            }
+            {
+            got: ^entity.Entity
+            for b in physics.bodies do if b.inv_mass != 0 {
+                got = entity.get(b.entity_id)
+                break
+            }
+            rot := rotate_vector({0, 1, 0}, got.orientation)
+            fmt.println("dir", die_facing_up(got.orientation))
+            render.draw_line(got.pos, got.pos + 2*rot)
             }
 
             render.lines_flush()
@@ -192,6 +205,9 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
 	}
     if key == glfw.KEY_LEFT_SHIFT && action == glfw.PRESS {
         debug_draw = !debug_draw
+    }
+    if key == glfw.KEY_SPACE && action == glfw.PRESS {
+        physics_paused = !physics_paused
     }
 }
 
@@ -265,4 +281,33 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
 
     t := glm.dot(p_center - r_origin, p_norm) / denom
     return t, t > 0 
+}
+
+// https://gamedev.stackexchange.com/a/50545
+rotate_vector :: proc(v: glm.vec3, q: glm.quat) -> glm.vec3 {
+    u := glm.vec3{imag(q), jmag(q), kmag(q)}
+    s := real(q)
+
+    return  2 * u * glm.dot(u, v) +
+        v * (s*s - glm.dot(u, u)) +
+        2 * s * glm.cross(u, v)
+}
+
+die_facing_up :: proc(orientation: glm.quat) -> int {
+    UP :: glm.vec3{0, 1, 0}
+    T  :: 0.75 // Threshold for cosine similarity.
+
+    dir := rotate_vector({0, 1, 0}, orientation)
+    if glm.dot( dir, UP) > T do return 5
+    if glm.dot(-dir, UP) > T do return 2
+
+    dir = rotate_vector({1, 0, 0}, orientation)
+    if glm.dot( dir, UP) > T do return 6
+    if glm.dot(-dir, UP) > T do return 1
+
+    dir = rotate_vector({0, 0, 1}, orientation)
+    if glm.dot( dir, UP) > T do return 3
+    if glm.dot(-dir, UP) > T do return 4
+
+    return 0 // No valid side.
 }
