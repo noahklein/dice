@@ -10,9 +10,10 @@ import "random"
 
 dice_rolling_timer: f32
 rolling_quiet_frames: int
-farkle_state := FarkleState.ReadyToThrow
+farkle_state := FarkleState.RoundStart
 
 FarkleState :: enum {
+    RoundStart,
     ReadyToThrow,
     HoldingDice,
     Rolling,
@@ -21,11 +22,10 @@ FarkleState :: enum {
 Input :: enum { Fire }
 
 update_farkle :: proc(dt: f32) {
-
     switch farkle_state {
-    case .HoldingDice:
-        fmt.println("holding")
-        physics_paused = true
+    case .RoundStart:
+        farkle.round.turns_remaining = 3
+        farkle_state = .ReadyToThrow 
     case .ReadyToThrow:
         physics_paused = false
     case .Rolling:
@@ -46,15 +46,28 @@ update_farkle :: proc(dt: f32) {
             }
         }
 
+        // Count frames of quietude.
         if total_vel == 0 || total_vel < 0.1e-22 * f32(total_dice) {
             rolling_quiet_frames += 1
         } else {
-            rolling_quiet_frames = 0
+            rolling_quiet_frames = 0 // Tranquility broken, start counting again.
         }
+
+        // Serenity now, start scoring.
         if rolling_quiet_frames > 400 {
             rolling_quiet_frames = 0
             farkle_state = .HoldingDice
         }
+    case .HoldingDice:
+        physics_paused = true
+
+        hand_type, score := farkle.round_score_held_dice()
+        if hand_type == .Invalid { // Bust
+            farkle.round.turns_remaining -= 1
+            fmt.println("bust")
+            farkle_state = .ReadyToThrow
+        }
+        fmt.println("choose dice", hand_type, score)
     }
 }
 
