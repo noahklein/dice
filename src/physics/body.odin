@@ -3,6 +3,7 @@ package physics
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "../entity"
+import "../nmath"
 
 bodies := make([dynamic]Body, 0, 128)
 body_dt_acc: f32
@@ -10,7 +11,7 @@ body_dt_acc: f32
 DT :: 1.0 / 120.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 MAX_SPEED :: 64
-MAX_ANG_SPEED :: 13
+MAX_ANG_SPEED :: 10
 SLOP_PENETRATION :: 0.05 // m
 SLOP_RESTITUTION ::  0.5 // m/s
 
@@ -163,7 +164,7 @@ resolve_collision :: proc(collision_info: Collision) {
     bodyB.angular_vel += bodyB.inv_inertia_tensor * glm.cross(cpB,  J)
 
     {
-        // Friction
+        // Apply friction. The friction impulse vector points in the collision tangent's direction.
         rel_vel = (bodyB.vel + glm.cross(bodyB.angular_vel, cpB)) -
                   (bodyA.vel + glm.cross(bodyA.angular_vel, cpA))
 
@@ -174,10 +175,11 @@ resolve_collision :: proc(collision_info: Collision) {
         friction_impulse_mag := -glm.dot(rel_vel, tangent) / (total_mass + glm.dot(inertiaA + inertiaB, tangent))
         friction_impulse := friction_impulse_mag * tangent
 
-        FRICTION :: 1.0
-        max_friction := glm.length(J) * FRICTION
-        if glm.length(friction_impulse) > max_friction {
-            friction_impulse = glm.normalize(friction_impulse) * max_friction
+        STATIC_FRICTION :: 1
+        DYNAMIC_FRICTION :: 1
+        // Coulomb's law.
+        if j_mag := glm.length(J); abs(friction_impulse_mag) > j_mag * STATIC_FRICTION {
+            friction_impulse = -j_mag * tangent * DYNAMIC_FRICTION
         }
 
         // Apply friction impulse
@@ -227,16 +229,6 @@ body_inertia :: proc(ent_id: entity.ID, inv_mass: f32, shape: ShapeID) -> glm.ve
 }
 
 body_update_inertia :: proc(b: ^Body) {
-    mat3FromQuat :: proc(q: glm.quat) -> glm.mat3 {
-        w, x, y, z := q.w, q.x, q.y, q.z
-
-        return {
-            1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w,
-            2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w,
-            2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y,
-        }
-    }
-
     mat3_scale :: proc(v: glm.vec3) -> (m: glm.mat3) {
         m[0, 0] = v.x
         m[1, 1] = v.y
@@ -245,7 +237,7 @@ body_update_inertia :: proc(b: ^Body) {
     }
 
     q := entity.get(b.entity_id).orientation
-    b.inv_inertia_tensor = mat3FromQuat(q) * mat3_scale(b.inv_inertia) * mat3FromQuat(conj(q))
+    b.inv_inertia_tensor = nmath.mat3FromQuat(q) * mat3_scale(b.inv_inertia) * nmath.mat3FromQuat(conj(q))
 }
 
 body_sleep_check :: proc(b: ^Body) -> bool {
