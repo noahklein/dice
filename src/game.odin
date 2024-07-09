@@ -37,50 +37,47 @@ update_farkle :: proc(dt: f32) {
 
         RESTING_Y :: 1.0 // Y position of a resting cube.
 
-        // If physics is taking too long, dice are probably stacked.
-        // Apply force to fastest moving body.
         is_stable := dice_rolling_time >= DICE_ROLLING_TIME_LIMIT
-        if is_stable {
-            for d in farkle.round.dice do if !d.used {
-                // Check if die is in resting position.
-                pos := entity.get(d.entity_id).pos
-                if nmath.nearly_eq(pos.y, RESTING_Y, 0.15) do continue
+        if !is_stable do return
 
-                is_stable = false
+        // If physics is taking too long, dice are probably stacked.
+        for d in farkle.round.dice do if !d.used {
+            // Check if die is in resting position.
+            pos := entity.get(d.entity_id).pos
+            if nmath.nearly_eq(pos.y, RESTING_Y, 0.15) do continue
 
-                // Apply force to bodies above ground level.
-                for &b in physics.bodies do if b.entity_id == d.entity_id {
-                    v := glm.vec3{0, 4, 0} - pos
-                    b.vel += v
-                    break
-                }
+            is_stable = false
+
+            // Push unresting bodies towards center.
+            for &b in physics.bodies do if b.entity_id == d.entity_id {
+                b.vel += glm.vec3{0, 4, 0} - pos
+                break
             }
+        }
 
-            // Add more time to allow moved dice to settle.
-            if !is_stable do dice_rolling_time = 0.6 * DICE_ROLLING_TIME_LIMIT
+        // Add more time to allow moved dice to settle.
+        if !is_stable {
+            dice_rolling_time = 0.6 * DICE_ROLLING_TIME_LIMIT
+            return
         }
 
         // Serenity now, start scoring.
-        if is_stable {
-            fmt.println("all quiet")
-
-            hand_type, _ := farkle.round_score_dice()
-            if hand_type == .Invalid { // Bust
-                fmt.println("bust")
-                farkle.round.turns_remaining -= 1
-                // @TODO: check for loss.
-                for &d in farkle.round.dice {
-                    d.held = false
-                    d.used = false
-                }
-
-                farkle_state = .ReadyToThrow
-                return
+        hand_type, _ := farkle.round_score_dice()
+        if hand_type == .Invalid { // Bust
+            fmt.println("bust")
+            farkle.round.turns_remaining -= 1
+            // @TODO: check for loss.
+            for &d in farkle.round.dice {
+                d.held = false
+                d.used = false
             }
-
-            farkle_state = .HoldingDice
-            physics_paused = true
+            farkle_state = .ReadyToThrow
+            return
         }
+
+        farkle_state = .HoldingDice
+        physics_paused = true
+
     case .HoldingDice:
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
