@@ -62,6 +62,7 @@ update_farkle :: proc(dt: f32) {
 
             hand_type, _ := farkle.round_score_dice()
             if hand_type == .Invalid { // Bust
+                fmt.println("bust")
                 farkle.round.turns_remaining -= 1
                 // @TODO: check for loss.
                 for &d in farkle.round.dice {
@@ -74,15 +75,16 @@ update_farkle :: proc(dt: f32) {
             }
 
             farkle_state = .HoldingDice
+            physics_paused = true
+            fmt.println("best hand", farkle.round_score_dice())
         }
     case .HoldingDice:
-        physics_paused = true
-
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
                 d.held = !d.held
 
                 holding_hand, holding_score = farkle.round_score_dice(held_only = true)
+                fmt.println("selected", holding_hand, holding_score)
             }
         }
 

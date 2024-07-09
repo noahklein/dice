@@ -99,8 +99,6 @@ main :: proc() {
     init_entities()
     init_camera(1600.0 / 900.0)
 
-    frames := 0
-
     for !glfw.WindowShouldClose(window) {
         defer {
             glfw.SwapBuffers(window)
@@ -127,10 +125,6 @@ main :: proc() {
 		}
 
         update_farkle(dt)
-        frames += 1
-        if frames % 250 == 0 {
-            fmt.println(farkle.round_score_dice())
-        }
 
         // Draw scene to mouse picking framebuffer.
         gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)

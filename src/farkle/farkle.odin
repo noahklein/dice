@@ -1,5 +1,6 @@
 package farkle
 
+import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "../entity"
 import "../nmath"
@@ -16,20 +17,23 @@ DieType :: enum { D6 }
 Die :: struct {
     entity_id: entity.ID,
     type: DieType,
-    held, used: bool,
+    held: bool, // Die chosen for this hand.
+    used: bool, // Die already used for a previous hand.
 }
 
 HandType :: enum {
     Invalid,
+    LooseChange, // Only 1s and 5s scored.
+    ThreeOfAKind,
+    FourOfAKind,
+    FiveOfAKind,
+    SixOfAKind,
     SmallStraight,
     LargeStraight,
-    SixOfAKind,
-    FiveOfAKind,
-    FourOfAKind,
-    ThreeOfAKind,
-    LooseChange, // Only 1s and 5s scored.
 }
 
+// Checks all unused dice for bust when held_only = false. When held_only = true,
+// all held dice must contribute to the score or the hand is illegal.
 round_score_dice :: proc(held_only := false) -> (HandType, int) {
     context.allocator = context.temp_allocator
 
@@ -41,6 +45,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         max_pip = max(max_pip, pip_value)
 
         if pip_value == 0 { // @TODO: handle bad dice, apply impulse.
+            fmt.eprintfln("Bad die in round_score_dice(held_only=%v)", held_only)
         }
     }
 
@@ -53,6 +58,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         }
         max_streak = max(max_streak, end - start)
     }
+
     if held_only && max_streak >= 5 {
         // No duplicates allowed in straight.
         for pip, count in pip_counts {
@@ -61,9 +67,15 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         }
     }
 
+    // Straight uses special loose change check. This assumes dice are in 1-6 range, thus
+    // 1s and 5s always contribute to the straight.
+    loose_change: int
+    if pip_counts[1] > 1 do loose_change += 100 * (pip_counts[1] - 1)
+    if pip_counts[5] > 1 do loose_change += 50 * (pip_counts[1] - 1)
+
     switch max_streak {
-        case 5: return .SmallStraight, 1000
-        case 6: return .LargeStraight, 2000
+        case 5: return .SmallStraight, 1000 + loose_change
+        case 6: return .LargeStraight, 2000 + loose_change
     }
 
     // Check for X of a kind.
@@ -72,7 +84,8 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         kind_pip, max_count = pip, count
     }
 
-    loose_change: int
+    // Non-straight loose change.
+    loose_change = 0
     if kind_pip != 1 || max_count < 3 do loose_change += 100 * (pip_counts[1] or_else 0)
     if kind_pip != 5 || max_count < 3 do loose_change +=  50 * (pip_counts[5] or_else 0)
 
@@ -84,7 +97,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
     }
 
     switch max_count {
-        case 6: return .SixOfAKind , 3000
+        case 6: return .SixOfAKind , 3000 + loose_change
         case 5: return .FiveOfAKind, 2000 + loose_change
         case 4: return .FourOfAKind, 1000 + loose_change
         case 3:
