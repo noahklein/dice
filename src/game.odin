@@ -5,15 +5,17 @@ import glm "core:math/linalg/glsl"
 
 import "entity"
 import "farkle"
+import "nmath"
 import "physics"
 import "random"
 
-dice_rolling_timer: f32
-rolling_quiet_time: f32
 farkle_state := FarkleState.RoundStart
 
 holding_hand: farkle.HandType
 holding_score: int
+
+dice_rolling_time: f32
+DICE_ROLLING_TIME_LIMIT :: 3.0 // seconds
 
 FarkleState :: enum {
     RoundStart,
@@ -31,34 +33,35 @@ update_farkle :: proc(dt: f32) {
         physics_paused = false
         if .Fire in input do throw_dice()
     case .Rolling:
-        dice_rolling_timer += dt
+        dice_rolling_time += dt
 
-        // Wait for dice to slow down.
-        total_vel: f32
-        total_dice: int
-        for d in farkle.round.dice do if !d.used {
-            for &b in physics.bodies do if b.entity_id == d.entity_id {
-                total_vel += glm.dot(b.vel, b.vel)
-                total_vel += glm.dot(b.angular_vel, b.angular_vel)
-                total_dice += 1
+        RESTING_Y :: 1.0 // Y position of a resting cube.
 
-                if dice_rolling_timer > 10 {
-                    b.restitution = 0 // Help them slow down.
+        // If physics is taking too long, dice are probably stacked.
+        // Apply force to fastest moving body.
+        is_stable := dice_rolling_time >= DICE_ROLLING_TIME_LIMIT
+        if is_stable {
+            for d in farkle.round.dice do if !d.used {
+                // Check if die is in resting position.
+                y := entity.get(d.entity_id).pos.y
+                if nmath.nearly_eq(y, RESTING_Y, 0.15) do continue
+
+                is_stable = false
+
+                // Apply force to bodies above ground level.
+                for &b in physics.bodies do if b.entity_id == d.entity_id {
+                    b.vel += 4
+                    break
                 }
             }
-        }
 
-        // Count period of quietude.
-        if total_vel == 0 || total_vel < 0.1 * f32(total_dice) {
-            rolling_quiet_time += dt
-        } else {
-            rolling_quiet_time = 0 // Tranquility broken, start counting again.
+            // Add more time to allow moved dice to settle.
+            if !is_stable do dice_rolling_time = 0.4 * DICE_ROLLING_TIME_LIMIT
         }
 
         // Serenity now, start scoring.
-        if rolling_quiet_time > 2 {
+        if is_stable {
             fmt.println("all quiet")
-            rolling_quiet_time = 0
 
             hand_type, _ := farkle.round_score_dice()
             if hand_type == .Invalid { // Bust
@@ -76,7 +79,6 @@ update_farkle :: proc(dt: f32) {
 
             farkle_state = .HoldingDice
             physics_paused = true
-            fmt.println("best hand", farkle.round_score_dice())
         }
     case .HoldingDice:
         if .Fire in input do for &d in farkle.round.dice {
@@ -112,7 +114,7 @@ update_farkle :: proc(dt: f32) {
 throw_dice :: proc() {
     if farkle_state != .ReadyToThrow do return
 
-    dice_rolling_timer = 0
+    dice_rolling_time = 0
     farkle_state = .Rolling
 
     SPAWN_POINT :: glm.vec3{0, 10, 10}
@@ -128,7 +130,6 @@ throw_dice :: proc() {
         for &b in physics.bodies do if b.entity_id == die.entity_id {
             b.vel = {0, 0, -30}
             b.angular_vel = random.vec3()
-            b.restitution = 0.3
         }
     }
 }

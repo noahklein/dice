@@ -194,9 +194,12 @@ main :: proc() {
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
             render.draw_textf({20, 860}, "Total Score: %v", farkle.round.score)
             render.draw_textf({20, 840}, "%v", farkle_state)
-            if farkle_state == .HoldingDice {
+            #partial switch farkle_state {
+            case .HoldingDice:
                 render.draw_textf({20, 820}, "Best Hand: %v, %v", farkle.round_score_dice())
                 render.draw_textf({20, 800}, "Selected: %v, %v", farkle.round_score_dice(true))
+            case .Rolling:
+                render.draw_textf({20, 820}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
         }
 
@@ -225,7 +228,7 @@ main :: proc() {
 init_entities :: proc() {
     FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 30
-    floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
+    floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
     append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
     physics.bodies_create(floor, .Box)
 
