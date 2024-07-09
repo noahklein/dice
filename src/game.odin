@@ -31,6 +31,8 @@ update_farkle :: proc(dt: f32) {
         farkle_state = .ReadyToThrow
     case .ReadyToThrow:
         physics_paused = false
+        holding_hand = nil
+        holding_score = 0
         if .Fire in input do throw_dice()
     case .Rolling:
         dice_rolling_time += dt
@@ -85,7 +87,6 @@ update_farkle :: proc(dt: f32) {
                 d.held = !d.held
 
                 holding_hand, holding_score = farkle.round_score_dice(held_only = true)
-                fmt.println("selected", holding_hand, holding_score)
             }
         }
 
