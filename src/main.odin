@@ -26,7 +26,7 @@ mouse_coords: glm.vec2
 mouse_pick: render.MousePicking
 hovered_ent_id: entity.ID
 
-Input :: enum { Fire, Confirm }
+Input :: enum { Fire, Confirm, Stand }
 input: bit_set[Input]
 
 main :: proc() {
@@ -192,14 +192,15 @@ main :: proc() {
         {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
-            render.draw_textf({20, 860}, "Total Score: %v", farkle.round.score)
-            render.draw_textf({20, 840}, "%v", farkle_state)
+            render.draw_textf({20, 860}, "Streak Score: %v", farkle.round.score)
+            render.draw_textf({20, 840}, "Total  Score: %v", farkle.round.total_score)
+            render.draw_textf({20, 820}, "%v", farkle_state)
             #partial switch farkle_state {
             case .HoldingDice:
-                render.draw_textf({20, 820}, "Best Hand: %v, %v", farkle.round_score_dice())
-                render.draw_textf({20, 800}, "Selected: %v, %v", farkle.round_score_dice(true))
+                render.draw_textf({20, 800}, "Best Hand: %v, %v", farkle.round_score_dice())
+                render.draw_textf({20, 780}, "Selected: %v, %v", farkle.round_score_dice(true))
             case .Rolling:
-                render.draw_textf({20, 820}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
+                render.draw_textf({20, 800}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
         }
 
@@ -275,6 +276,8 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             throw_dice()
         case glfw.KEY_R:
             input += {.Confirm}
+        case glfw.KEY_F:
+            input += {.Stand}
     }
 }
 

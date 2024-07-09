@@ -9,7 +9,7 @@ round: Round
 
 Round :: struct {
     turns_remaining: int,
-    score: int,
+    score, total_score: int,
     dice: [6]Die,
 }
 

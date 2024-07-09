@@ -66,6 +66,7 @@ update_farkle :: proc(dt: f32) {
         if hand_type == .Invalid { // Bust
             fmt.println("bust")
             farkle.round.turns_remaining -= 1
+            farkle.round.score = 0
             // @TODO: check for loss.
             for &d in farkle.round.dice {
                 d.held = false
@@ -86,6 +87,18 @@ update_farkle :: proc(dt: f32) {
                 holding_hand, holding_score = farkle.round_score_dice(held_only = true)
                 fmt.println("selected", holding_hand, holding_score)
             }
+        }
+
+        if .Stand in input && holding_hand != .Invalid {
+            farkle.round.total_score += farkle.round.score + holding_score
+            farkle.round.score = 0
+            farkle.round.turns_remaining -= 1
+            farkle_state = .ReadyToThrow
+            for &d in farkle.round.dice {
+                d.used = false
+                d.held = false
+            }
+            return
         }
 
         if .Confirm in input && holding_hand != .Invalid {
