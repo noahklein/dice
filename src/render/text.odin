@@ -26,6 +26,10 @@ Character :: struct {
 
 characters: map[byte]Character
 
+draw_textf :: proc(pos: glm.vec2, strf: string, args: ..any, scale: f32 = 1) {
+    draw_text(pos, fmt.tprintf(strf, ..args), scale)
+}
+
 draw_text :: proc(pos: glm.vec2, text: string, scale: f32 = 1) {
     gl.BindVertexArray(text_render.vao)
     gl.UseProgram(text_render.shader.id)

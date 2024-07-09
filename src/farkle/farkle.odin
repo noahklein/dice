@@ -100,9 +100,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
         case 6: return .SixOfAKind , 3000 + loose_change
         case 5: return .FiveOfAKind, 2000 + loose_change
         case 4: return .FourOfAKind, 1000 + loose_change
-        case 3:
-            score := kind_pip * 100 if kind_pip != 1 else 300
-            return .ThreeOfAKind, score + loose_change
+        case 3: return .ThreeOfAKind, 100*kind_pip + loose_change
     }
 
     if loose_change > 0 {

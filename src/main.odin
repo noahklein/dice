@@ -102,6 +102,7 @@ main :: proc() {
 
     init_entities()
     init_camera(1600.0 / 900.0)
+    on_mouse_move(&cam, {1600, 900} / 2)
 
     for !glfw.WindowShouldClose(window) {
         defer {
@@ -188,7 +189,16 @@ main :: proc() {
 
         render.renderer_flush(&mesh)
 
-        render.draw_text({100, 800}, "Hello World!", scale = 1)
+        {
+            // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
+            render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
+            render.draw_textf({20, 860}, "Total Score: %v", farkle.round.score)
+            render.draw_textf({20, 840}, "%v", farkle_state)
+            if farkle_state == .HoldingDice {
+                render.draw_textf({20, 820}, "Best Hand: %v, %v", farkle.round_score_dice())
+                render.draw_textf({20, 800}, "Selected: %v, %v", farkle.round_score_dice(true))
+            }
+        }
 
         {
             // Draw mousepicking texture to screen.
