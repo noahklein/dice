@@ -132,7 +132,7 @@ throw_dice :: proc() {
     for die in farkle.round.dice {
         ent := entity.get(die.entity_id)
         if die.used {
-            ent.pos = -100 // Hide it somewhere no one will find it.
+            ent.pos = -5000 // Hide it somewhere no one will find it.
             continue
         }
         ent.pos = SPAWN_POINT - 3*random.vec3()
