@@ -15,7 +15,7 @@ holding_hand: farkle.HandType
 holding_score: int
 
 dice_rolling_time: f32
-DICE_ROLLING_TIME_LIMIT :: 3.0 // seconds
+DICE_ROLLING_TIME_LIMIT :: 3.5 // seconds
 
 FarkleState :: enum {
     RoundStart,
@@ -43,20 +43,21 @@ update_farkle :: proc(dt: f32) {
         if is_stable {
             for d in farkle.round.dice do if !d.used {
                 // Check if die is in resting position.
-                y := entity.get(d.entity_id).pos.y
-                if nmath.nearly_eq(y, RESTING_Y, 0.15) do continue
+                pos := entity.get(d.entity_id).pos
+                if nmath.nearly_eq(pos.y, RESTING_Y, 0.15) do continue
 
                 is_stable = false
 
                 // Apply force to bodies above ground level.
                 for &b in physics.bodies do if b.entity_id == d.entity_id {
-                    b.vel += 4
+                    v := glm.vec3{0, 4, 0} - pos
+                    b.vel += v
                     break
                 }
             }
 
             // Add more time to allow moved dice to settle.
-            if !is_stable do dice_rolling_time = 0.4 * DICE_ROLLING_TIME_LIMIT
+            if !is_stable do dice_rolling_time = 0.6 * DICE_ROLLING_TIME_LIMIT
         }
 
         // Serenity now, start scoring.
@@ -129,7 +130,7 @@ throw_dice :: proc() {
 
         for &b in physics.bodies do if b.entity_id == die.entity_id {
             b.vel = {0, 0, -30}
-            b.angular_vel = random.vec3()
+            b.angular_vel = glm.normalize(random.vec3() + 0.01)
         }
     }
 }
