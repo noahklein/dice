@@ -84,6 +84,10 @@ main :: proc() {
         return
     }
     render.quad_renderer_init(quad_shader)
+    if err := render.text_renderer_init(screen); err != nil {
+        fmt.eprintln("failed to load text renderer", err)
+        return
+    }
 
     render.shapes_init()
     mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
@@ -104,6 +108,7 @@ main :: proc() {
             glfw.SwapBuffers(window)
             render.watch(&shader)
             render.watch(&quad_shader)
+            render.watch(&render.text_render.shader)
             input = {}
             free_all(context.temp_allocator)
         }
@@ -182,6 +187,8 @@ main :: proc() {
         }
 
         render.renderer_flush(&mesh)
+
+        render.draw_text({100, 800}, "Hello World!", scale = 1)
 
         {
             // Draw mousepicking texture to screen.
