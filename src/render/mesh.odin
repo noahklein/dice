@@ -2,6 +2,7 @@ package render
 
 import gl "vendor:OpenGL"
 import "../entity"
+import "../assets"
 
 meshes: [dynamic]Mesh
 
@@ -15,6 +16,13 @@ Mesh :: struct {
     tex_unit: u32,
 
     hidden: bool,
+}
+
+create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId) {
+    append(&meshes, Mesh{
+        mesh_id = id, entity_id = ent_id,
+        color = color, tex_unit = assets.tex_unit(tex),
+    })
 }
 
 Renderer :: struct {

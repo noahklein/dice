@@ -254,7 +254,7 @@ init_entities :: proc() {
     FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 30
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
-    append(&render.meshes, render.Mesh{entity_id = floor, mesh_id = .Cube, color = {0, 0, 1, 1}})
+    render.create_mesh(.Cube, floor, {0, 0, 1, 1}, .None)
     physics.bodies_create(floor, .Box, restitution = 1)
 
     roof := entity.new(pos = {0, -5 + WALL_HEIGHT, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
@@ -280,16 +280,16 @@ init_entities :: proc() {
         // farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D6 }
 
         id := entity.new(scale = 2)
-        append(&render.meshes, render.Mesh{entity_id = id, mesh_id = .Tetrahedron, color = {1, 0.2, 0.2, 1}, tex_unit = 1})
+        render.create_mesh(.Tetrahedron, id, {1, 0.2, 0.2, 1}, .D4)
         physics.bodies_create(id, .Tetrahedron, mass = 1, restitution = 0.4)
         farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
     }
 
     sphere := entity.new(pos = {0, 4, 0})
-    append(&render.meshes, render.Mesh{entity_id = sphere, mesh_id = .Sphere, hidden = true, color = {0, 0, 0, 1}})
+    render.create_mesh(.Sphere, sphere, {1, 1, 1, 1}, .None)
 
     tetrahedron := entity.new(pos = {3, 10, 0}, scale = 2)
-    append(&render.meshes, render.Mesh{entity_id = tetrahedron, mesh_id = .Tetrahedron, color = {1, 0.3, 0.7, 1}})
+    render.create_mesh(.Tetrahedron, tetrahedron, {1, 0.3, 0.7, 1}, .D4)
     physics.bodies_create(tetrahedron, .Tetrahedron, mass = 2, ang_vel = 2, restitution = 0.3)
 }
 
