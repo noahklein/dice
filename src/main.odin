@@ -289,10 +289,9 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             physics_paused = false
             farkle_state = .ReadyToThrow
             throw_dice()
-        case glfw.KEY_R:
-            input += {.Confirm}
-        case glfw.KEY_F:
-            input += {.Stand}
+
+        case glfw.KEY_R: input += {.Confirm}
+        case glfw.KEY_F: input += {.Stand}
     }
 }
 
