@@ -5,8 +5,9 @@
     * Round start, scoring, bust
 * Particle effects or smoke on collision
 * Test dice randomness
-* Special dice - odd/even,
+* Special dice - odd/even, wilds
 * More dice shapes - coin, d4, d8
 * Levels
 * Rewards after levels
 * Black hole creates gravity well in center to correct bad dice.
+* Throwing? shaking cup of dice.

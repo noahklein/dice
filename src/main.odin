@@ -97,13 +97,15 @@ main :: proc() {
         physics.shapes[.Box].vertices[i] = glm.vec3(v)
     }
 
-    prev_time := f32(glfw.GetTime())
-    timescale := f32(2)
+    prev_time := glfw.GetTime()
+    timescale: f32 = 2
 
     init_entities()
     init_camera(1600.0 / 900.0)
     on_mouse_move(&cam, {1600, 900} / 2)
 
+    fps_frames, fps_ms_per_frame: f64
+    fps_prev_time := glfw.GetTime()
     for !glfw.WindowShouldClose(window) {
         defer {
             glfw.SwapBuffers(window)
@@ -115,10 +117,19 @@ main :: proc() {
         }
 
         glfw.PollEvents()
+        fps_frames += 1
 
-        now := f32(glfw.GetTime())
-        dt := min((now - prev_time), 0.05)
+        now := glfw.GetTime()
+        if now - fps_prev_time >= 1 {
+            fps_ms_per_frame = 1000.0 / fps_frames
+            // fmt.printfln("%.3f ms/frame", 1000 / fps_frames)
+            fps_frames = 0
+            fps_prev_time = now
+        }
+
+        dt := f32(min((now - prev_time), 0.05))
         prev_time = now
+
 
         handle_input(window, dt)
         if !physics_paused {
@@ -191,16 +202,18 @@ main :: proc() {
 
         {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
+            render.draw_textf({1500, 880}, "%.2f ms",  fps_ms_per_frame)
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
             render.draw_textf({20, 860}, "Streak Score: %v", farkle.round.score)
             render.draw_textf({20, 840}, "Total  Score: %v", farkle.round.total_score)
             render.draw_textf({20, 820}, "%v", farkle_state)
+            render.draw_textf({20, 800}, "Physics Paused: %v", physics_paused)
             #partial switch farkle_state {
             case .HoldingDice:
-                render.draw_textf({20, 800}, "Best Hand: %v, %v", farkle.round_score_dice())
-                render.draw_textf({20, 780}, "Selected: %v, %v", holding_hand, holding_score)
+                render.draw_textf({20, 700}, "Best Hand: %v, %v", farkle.round_score_dice())
+                render.draw_textf({20, 680}, "Selected: %v, %v", holding_hand, holding_score)
             case .Rolling:
-                render.draw_textf({20, 800}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
+                render.draw_textf({20, 700}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
         }
 
@@ -234,7 +247,7 @@ init_entities :: proc() {
     physics.bodies_create(floor, .Box)
 
     roof := entity.new(pos = {0, -5 + WALL_HEIGHT, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
-    append(&render.meshes, render.Mesh{entity_id = roof, color = {0, 0, 1, 1}})
+    // append(&render.meshes, render.Mesh{entity_id = roof, color = {0, 0, 1, 1}})
     physics.bodies_create(roof, .Box)
 
     create_wall :: proc(pos, scale: glm.vec3) {
@@ -248,9 +261,10 @@ init_entities :: proc() {
     create_wall({-FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
     create_wall({ FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
 
+    // Create dice.
     for _, i in farkle.round.dice {
         ent_id := entity.new()
-        append(&render.meshes, render.Mesh{entity_id = ent_id, color = {1, 0, 0, 1}, tex_unit = 1})
+        append(&render.meshes, render.Mesh{entity_id = ent_id, color = {1, 0.2, 0.2, 1}, tex_unit = 1})
         physics.bodies_create(ent_id, .Box, mass = 1)
         farkle.round.dice[i] = farkle.Die{ entity_id = ent_id, type = .D6 }
     }
@@ -298,10 +312,12 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
 
     if button == glfw.MOUSE_BUTTON_RIGHT && action == glfw.PRESS {
         cursor_hidden = !cursor_hidden
+        if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
         init_mouse = false
 
         cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
         glfw.SetInputMode(w, glfw.CURSOR, cursor_status)
+        glfw.SetCursorPos(w, f64(0.5 * screen.x), f64(0.5 * screen.y))
     }
 
     if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
