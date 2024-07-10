@@ -24,7 +24,6 @@ Body :: struct {
     vel, force: glm.vec3,
     angular_vel, torque: glm.vec3,
 
-    at_rest: bool,
     restitution: f32,
 
     inv_inertia: glm.vec3,
@@ -59,12 +58,8 @@ bodies_update :: proc(dt: f32) {
     }
 }
 
-first_tick := true
 bodies_fixed_update :: proc() {
-    for &body in bodies do if body.inv_mass != 0 && !body.at_rest {
-        if !first_tick && body_sleep_check(&body) do continue
-        // first_tick = false
-
+    for &body in bodies do if body.inv_mass != 0 {
         // Integrate acceleration.
         body.force += GRAVITY / body.inv_mass
         accel := body.force * body.inv_mass
@@ -238,12 +233,4 @@ body_update_inertia :: proc(b: ^Body) {
 
     q := entity.get(b.entity_id).orientation
     b.inv_inertia_tensor = nmath.mat3FromQuat(q) * mat3_scale(b.inv_inertia) * nmath.mat3FromQuat(conj(q))
-}
-
-body_sleep_check :: proc(b: ^Body) -> bool {
-    SLEEP :: 0.001
-    if glm.length(b.vel) < SLEEP do b.vel = 0
-    if glm.length(b.angular_vel) < SLEEP do b.angular_vel = 0
-    b.at_rest = b.vel == 0 && b.angular_vel == 0
-    return b.at_rest
 }
