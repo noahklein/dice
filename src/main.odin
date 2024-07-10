@@ -76,11 +76,20 @@ main :: proc() {
         return
     }
 
+    tetrahedron_obj, tetrahedron_err := render.load_obj("assets/tetrahedron.obj")
+    if tetrahedron_err != nil {
+        fmt.eprintln("Failed to load tetrahedron mesh")
+        return
+    }
+
     render.renderer_init(.Cube, cube_obj)
     defer render.renderer_deinit(.Cube)
 
     render.renderer_init(.Sphere, sphere_obj)
     defer render.renderer_deinit(.Sphere)
+
+    render.renderer_init(.Tetrahedron, tetrahedron_obj)
+    defer render.renderer_deinit(.Tetrahedron)
 
 
     {
@@ -269,6 +278,9 @@ init_entities :: proc() {
 
     sphere := entity.new(pos = {0, 4, 0})
     append(&render.meshes, render.Mesh{entity_id = sphere, mesh_id = .Sphere, hidden = true, color = {0, 0, 0, 1}})
+
+    tetrahedron := entity.new(pos = {3, 4, 0})
+    append(&render.meshes, render.Mesh{entity_id = tetrahedron, mesh_id = .Tetrahedron, color = {1, 0.3, 0.7, 1}})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
