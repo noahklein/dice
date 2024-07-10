@@ -10,7 +10,7 @@ round: Round
 Round :: struct {
     turns_remaining: int,
     score, total_score: int,
-    dice: [6]Die,
+    dice: [10]Die,
 }
 
 DieType :: enum { D6, D4 }
@@ -40,7 +40,7 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
     pip_counts: map[int]int // pip => count
     max_pip: int
     for die in round.dice do if !die.used && (!held_only || die.held) {
-        pip_value := die_facing_up(entity.get(die.entity_id).orientation)
+        pip_value := die_facing_up(die.type, entity.get(die.entity_id).orientation)
         pip_counts[pip_value] = pip_counts[pip_value] + 1
         max_pip = max(max_pip, pip_value)
 
@@ -114,7 +114,36 @@ round_score_dice :: proc(held_only := false) -> (HandType, int) {
     return .Invalid, 0
 }
 
-die_facing_up :: proc(orientation: glm.quat) -> int {
+die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
+    switch type {
+        case .D4: return die_facing_up_d4(orientation)
+        case .D6: return die_facing_up_d6(orientation)
+    }
+
+    fmt.eprintln("Unrecognized die type:", type)
+    return 0
+}
+
+die_facing_up_d4 :: proc(orientation: glm.quat) -> int {
+    UP :: glm.vec3{0, 1, 0}
+    T  :: 0.75 // Threshold for cosine similarity.
+
+    dir := nmath.rotate_vector({0, 1, 0}, orientation)
+    if glm.dot(dir, UP) > T do return 1
+
+    dir = nmath.rotate_vector({-0.471, -0.333, 0.817}, orientation)
+    if glm.dot(dir, UP) > T do return 2
+
+    dir = nmath.rotate_vector({-0.471, -0.333, -0.816}, orientation)
+    if glm.dot(dir, UP) > T do return 3
+
+    dir = nmath.rotate_vector({0.942, -0.333, 0}, orientation)
+    if glm.dot(dir, UP) > T do return 4
+
+    return 0
+}
+
+die_facing_up_d6 :: proc(orientation: glm.quat) -> int {
     UP :: glm.vec3{0, 1, 0}
     T  :: 0.75 // Threshold for cosine similarity.
 

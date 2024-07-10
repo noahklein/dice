@@ -3,6 +3,7 @@ package main
 import "base:runtime"
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:math/rand"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -274,21 +275,25 @@ init_entities :: proc() {
 
     // Create dice.
     for _, i in farkle.round.dice {
-        // ent_id := entity.new()
-        // append(&render.meshes, render.Mesh{entity_id = ent_id, mesh_id = .Cube, color = {1, 0.2, 0.2, 1}, tex_unit = 1})
-        // physics.bodies_create(ent_id, .Box, mass = 1)
-        // farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D6 }
-
-        id := entity.new(scale = 2)
-        render.create_mesh(.Tetrahedron, id, {1, 0.2, 0.2, 1}, .D4)
-        physics.bodies_create(id, .Tetrahedron, mass = 1, restitution = 0.4)
-        farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
+        die_type: farkle.DieType = rand.choice_enum(farkle.DieType)
+        switch die_type {
+        case .D4:
+            id := entity.new(scale = 3)
+            render.create_mesh(.Tetrahedron, id, {0.4, 1, 0.4, 1}, .D4)
+            physics.bodies_create(id, .Tetrahedron, mass = 1, restitution = 0.4)
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
+        case .D6:
+            id := entity.new()
+            append(&render.meshes, render.Mesh{entity_id = id, mesh_id = .Cube, color = {1, 0.4, 0.4, 1}, tex_unit = 1})
+            physics.bodies_create(id, .Box, mass = 1)
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D6 }
+        }
     }
 
-    sphere := entity.new(pos = {0, 4, 0})
-    render.create_mesh(.Sphere, sphere, {1, 1, 1, 1}, .None)
+    // sphere := entity.new(pos = {0, 4, 0})
+    // render.create_mesh(.Sphere, sphere, {1, 1, 1, 1}, .None)
 
-    tetrahedron := entity.new(pos = {3, 10, 0}, scale = 2)
+    tetrahedron := entity.new(pos = {3, 10, 0}, scale = 3)
     render.create_mesh(.Tetrahedron, tetrahedron, {1, 0.3, 0.7, 1}, .D4)
     physics.bodies_create(tetrahedron, .Tetrahedron, mass = 2, ang_vel = 2, restitution = 0.3)
 }
