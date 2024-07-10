@@ -5,11 +5,16 @@ import "../entity"
 
 meshes: [dynamic]Mesh
 
+MeshId ::  enum { Cube, Sphere }
+mesh_renderers: [MeshId]Renderer
+
 Mesh :: struct {
+    mesh_id: MeshId,
     entity_id: entity.ID,
     color: [4]f32,
     tex_unit: u32,
-    // @TODO: renderer id to support multiple mesh renderers.
+
+    hidden: bool,
 }
 
 Renderer :: struct {
@@ -34,11 +39,13 @@ Instance :: struct {
 
 MAX_INSTANCES :: 30
 
-renderer_init :: proc(obj: Obj) -> Renderer {
+renderer_init :: proc(id: MeshId, obj: Obj) {
     m := Renderer{
         instances = make([dynamic]Instance, 0, MAX_INSTANCES),
         verts = make([]Vertex, len(obj.faces)),
     }
+    defer mesh_renderers[id] = m
+
     for face, i in obj.faces {
         m.verts[i] = Vertex{
             pos = obj.vertices[face.vertex_index - 1],
@@ -85,11 +92,10 @@ renderer_init :: proc(obj: Obj) -> Renderer {
         gl.VertexAttribPointer(id, 4, gl.FLOAT, false, size_of(Instance), offset)
         gl.VertexAttribDivisor(id, 1)
     }
-
-    return m
 }
 
-renderer_deinit :: proc(m: ^Renderer) {
+renderer_deinit :: proc(id: MeshId) {
+    m := &mesh_renderers[id]
     gl.DeleteVertexArrays(1, &m.vao)
     gl.DeleteBuffers(1, &m.vbo)
     gl.DeleteBuffers(1, &m.ibo)
@@ -97,15 +103,17 @@ renderer_deinit :: proc(m: ^Renderer) {
     delete(m.verts)
 }
 
-renderer_draw :: proc(m: ^Renderer, instance: Instance) {
+renderer_draw :: proc(id: MeshId, instance: Instance) {
+    m := &mesh_renderers[id]
     if len(m.instances) + 1 >= MAX_INSTANCES {
-        renderer_flush(m)
+        renderer_flush(id)
     }
 
     append(&m.instances, instance)
 }
 
-renderer_flush :: proc(m: ^Renderer) {
+renderer_flush :: proc(id: MeshId) {
+    m := &mesh_renderers[id]
     if len(m.instances) == 0 {
         return
     }
@@ -117,4 +125,19 @@ renderer_flush :: proc(m: ^Renderer) {
     gl.DrawArraysInstanced(gl.TRIANGLES, 0, i32(len(m.verts)), i32(len(m.instances)))
 
     clear(&m.instances)
+}
+
+render_all_meshes :: proc() {
+    for id in MeshId {
+        for m in meshes do if !m.hidden && m.mesh_id == id {
+            renderer_draw(id, Instance{
+                transform = entity.transform(m.entity_id),
+                color = m.color,
+                ent_id = m.entity_id,
+                texture = m.tex_unit,
+            })
+        }
+
+        renderer_flush(id)
+    }
 }

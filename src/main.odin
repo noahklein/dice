@@ -66,11 +66,22 @@ main :: proc() {
 
     cube_obj, cube_err := render.load_obj("assets/cube.obj")
     if cube_err != nil {
-        fmt.panicf("Failed to load cube mesh")
+        fmt.eprintln("Failed to load cube mesh")
+        return
     }
 
-    mesh := render.renderer_init(cube_obj)
-    defer render.renderer_deinit(&mesh)
+    sphere_obj, sphere_err := render.load_obj("assets/sphere.obj")
+    if sphere_err != nil {
+        fmt.eprintln("Failed to load sphere mesh")
+        return
+    }
+
+    render.renderer_init(.Cube, cube_obj)
+    defer render.renderer_deinit(.Cube)
+
+    render.renderer_init(.Sphere, sphere_obj)
+    defer render.renderer_deinit(.Sphere)
+
 
     {
         width, height := glfw.GetWindowSize(window)
@@ -170,19 +181,7 @@ main :: proc() {
             gl.BindTextureUnit(tex.unit, tex.id)
         }
 
-        for m in render.meshes {
-            color := m.color
-            for body in physics.bodies do if body.entity_id == m.entity_id && body.at_rest {
-                color = {0.5, 0.5, 0.5, 1}
-                break
-            }
-            render.renderer_draw(&mesh, {
-                transform = entity.transform(m.entity_id),
-                texture = m.tex_unit,
-                color = color,
-                ent_id = m.entity_id,
-            })
-        }
+        render.render_all_meshes()
 
         // Draw outline around held dice.
         for d in farkle.round.dice do if d.held {
@@ -190,15 +189,14 @@ main :: proc() {
             ent.scale += 0.05
             defer ent.scale -= 0.05
 
-            render.renderer_draw(&mesh, {
+            render.renderer_draw(.Cube, {
                 transform = entity.transform(d.entity_id),
                 texture = 0,
                 color = {1, 1, 1, 0.25},
                 ent_id = d.entity_id,
             })
         }
-
-        render.renderer_flush(&mesh)
+        render.renderer_flush(.Cube)
 
         {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
@@ -243,7 +241,7 @@ init_entities :: proc() {
     FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 30
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
-    append(&render.meshes, render.Mesh{entity_id = floor, color = {0, 0, 1, 1}})
+    append(&render.meshes, render.Mesh{entity_id = floor, mesh_id = .Cube, color = {0, 0, 1, 1}})
     physics.bodies_create(floor, .Box)
 
     roof := entity.new(pos = {0, -5 + WALL_HEIGHT, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
@@ -264,10 +262,13 @@ init_entities :: proc() {
     // Create dice.
     for _, i in farkle.round.dice {
         ent_id := entity.new()
-        append(&render.meshes, render.Mesh{entity_id = ent_id, color = {1, 0.2, 0.2, 1}, tex_unit = 1})
+        append(&render.meshes, render.Mesh{entity_id = ent_id, mesh_id = .Cube, color = {1, 0.2, 0.2, 1}, tex_unit = 1})
         physics.bodies_create(ent_id, .Box, mass = 1)
         farkle.round.dice[i] = farkle.Die{ entity_id = ent_id, type = .D6 }
     }
+
+    sphere := entity.new(pos = {0, 4, 0})
+    append(&render.meshes, render.Mesh{entity_id = sphere, mesh_id = .Sphere, hidden = true, color = {0, 0, 0, 1}})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
