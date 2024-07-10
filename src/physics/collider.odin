@@ -4,7 +4,7 @@ import glm "core:math/linalg/glsl"
 
 COLLIDER_MAX_VERTICES :: 8
 
-ShapeID :: enum { Box }
+ShapeID :: enum { Box, Tetrahedron }
 shapes: [ShapeID]Shape
 
 Shape :: struct {

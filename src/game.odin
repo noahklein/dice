@@ -17,6 +17,12 @@ holding_score: int
 dice_rolling_time: f32
 DICE_ROLLING_TIME_LIMIT :: 3.5 // seconds
 
+// Y position of a resting die.
+RESTING_Y := [farkle.DieType]f32{
+    .D6 = 1.00,
+    .D4 = 0.35,
+}
+
 FarkleState :: enum {
     RoundStart,
     ReadyToThrow,
@@ -37,8 +43,6 @@ update_farkle :: proc(dt: f32) {
     case .Rolling:
         dice_rolling_time += dt
 
-        RESTING_Y :: 1.0 // Y position of a resting cube.
-
         is_stable := dice_rolling_time >= DICE_ROLLING_TIME_LIMIT
         if !is_stable do return
 
@@ -46,7 +50,7 @@ update_farkle :: proc(dt: f32) {
         for d in farkle.round.dice do if !d.used {
             // Check if die is in resting position.
             pos := entity.get(d.entity_id).pos
-            if nmath.nearly_eq(pos.y, RESTING_Y, 0.15) do continue
+            if nmath.nearly_eq(pos.y, RESTING_Y[d.type], 0.15) do continue
 
             is_stable = false
 
@@ -129,14 +133,14 @@ throw_dice :: proc() {
     dice_rolling_time = 0
     farkle_state = .Rolling
 
-    SPAWN_POINT :: glm.vec3{0, 10, 10}
+    SPAWN_POINT :: glm.vec3{0, 10, 8}
     for die in farkle.round.dice {
         ent := entity.get(die.entity_id)
         if die.used {
             ent.pos = -5000 // Hide it somewhere no one will find it.
             continue
         }
-        ent.pos = SPAWN_POINT - 3*random.vec3()
+        ent.pos = SPAWN_POINT - 4*random.vec3()
         ent.orientation = random.quat()
 
         for &b in physics.bodies do if b.entity_id == die.entity_id {

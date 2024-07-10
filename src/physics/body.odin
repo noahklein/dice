@@ -37,14 +37,15 @@ Collision :: struct{
 }
 
 bodies_create :: proc(id: entity.ID, shape: ShapeID = .Box, mass: f32 = 0,
-                      vel: glm.vec3 = 0, ang_vel: glm.vec3 = 0) {
+                      vel: glm.vec3 = 0, ang_vel: glm.vec3 = 0,
+                      restitution: f32 = 0.3) {
     inv_mass := 0 if mass == 0 else 1.0 / mass
     append(&bodies, Body{
         entity_id = id, shape = shape,
         inv_mass = inv_mass,
         vel = vel, angular_vel = ang_vel,
-        inv_inertia = body_inertia(id, inv_mass, shape),
-        restitution = 0.3,
+        inv_inertia = body_inv_inertia(id, inv_mass, shape),
+        restitution = restitution,
     })
     body_update_inertia(&bodies[len(bodies) - 1])
 
@@ -206,8 +207,11 @@ colliders_update :: proc() {
 
 // See https://en.wikipedia.org/wiki/List_of_moments_of_inertia
 @(private="file")
-body_inertia :: proc(ent_id: entity.ID, inv_mass: f32, shape: ShapeID) -> glm.vec3 {
+body_inv_inertia :: proc(ent_id: entity.ID, inv_mass: f32, shape: ShapeID) -> glm.vec3 {
     switch shape {
+        case .Tetrahedron:
+            s := entity.get(ent_id).scale
+            return (12*inv_mass) / (s*s)
         case .Box:
             s := 2 * entity.get(ent_id).scale
             s *= s // Square it
