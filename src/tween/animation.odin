@@ -35,7 +35,7 @@ to :: proc(ent_id: entity.ID, target: Value, dur: f32, delay: f32 = 0, ease: eas
 update :: proc(dt: f32) {
     for i := 0; i < len(tweens); i += 1 {
         tween := &tweens[i]
-        defer if tween.curr_time > tween.dur {
+        defer if tween.curr_time >= tween.dur {
             unordered_remove(&tweens, i)
             i -= 1
         }
@@ -61,7 +61,6 @@ update :: proc(dt: f32) {
         tween.curr_time = clamp(tween.curr_time, 0, tween.dur)
 
         t := ease.ease(tween.ease, tween.curr_time / tween.dur)
-        fmt.println(t)
         ent := entity.get(tween.ent_id)
         switch initial in tween.initial {
         case Pos:
