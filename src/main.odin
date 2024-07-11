@@ -294,7 +294,7 @@ main :: proc() {
 
 init_entities :: proc() {
     FLOOR_SIZE   :: 10
-    WALL_HEIGHT :: 30
+    WALL_HEIGHT :: 50
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
     render.create_mesh(.Cube, floor, {0, 0, 1, 1}, .None)
     physics.bodies_create(floor, .Box, restitution = 1)
@@ -310,10 +310,11 @@ init_entities :: proc() {
         physics.bodies_create(w, .Box, restitution = 1)
     }
 
-    create_wall({0, 0, -FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT, 1})
-    create_wall({0, 0,  FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT, 1})
-    create_wall({-FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
-    create_wall({ FLOOR_SIZE, 0, 0}, {1, WALL_HEIGHT, FLOOR_SIZE})
+    HALF_HEIGHT :: WALL_HEIGHT / 2
+    create_wall({0, HALF_HEIGHT, -FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT / 2, 1})
+    create_wall({0, HALF_HEIGHT,  FLOOR_SIZE}, {FLOOR_SIZE, WALL_HEIGHT / 2, 1})
+    create_wall({-FLOOR_SIZE, HALF_HEIGHT, 0}, {1, HALF_HEIGHT, FLOOR_SIZE})
+    create_wall({ FLOOR_SIZE, HALF_HEIGHT, 0}, {1, HALF_HEIGHT, FLOOR_SIZE})
 
     // Create dice.
     for _, i in farkle.round.dice {
@@ -332,7 +333,7 @@ init_entities :: proc() {
         case .D8:
             id := entity.new()
             render.create_mesh(.Octahedron, id, {1, 1, 1, 1}, .D8)
-            physics.bodies_create(id, .Octahedron, mass = 1, restitution = 0.6)
+            physics.bodies_create(id, .Octahedron, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
         }
     }
