@@ -11,10 +11,10 @@ import "vendor:glfw"
 import "assets"
 import "entity"
 import "farkle"
-import "nmath"
 import "physics"
 import "random"
 import "render"
+import "tween"
 
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
@@ -136,19 +136,6 @@ main :: proc() {
         physics.shapes[.Octahedron].vertices[i] = glm.vec3(v)
     }
 
-    for i := 0; i < len(octahedron_obj.faces); i += 3 {
-        get_vertex :: proc(obj: render.Obj, face_index: int) -> glm.vec3 {
-            vi := obj.faces[face_index].vertex_index
-            return glm.vec3(obj.vertices[vi - 1])
-        }
-
-        a := get_vertex(octahedron_obj, i)
-        b := get_vertex(octahedron_obj, i+1)
-        c := get_vertex(octahedron_obj, i+2)
-        plane := nmath.plane_from_tri(a, b, c)
-        fmt.println("oct face normal", plane.normal)
-    }
-
     prev_time := glfw.GetTime()
 
     init_entities()
@@ -193,6 +180,7 @@ main :: proc() {
 		}
 
         update_farkle(dt)
+        tween.update(dt)
 
         // Draw scene to mouse picking framebuffer.
         gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)
@@ -341,6 +329,13 @@ init_entities :: proc() {
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
         }
     }
+
+    sphere := entity.new({0, 7, 0})
+    render.create_mesh(.Sphere, sphere, tex = .D6)
+    tween.to(sphere, tween.Pos{{0, 10, 0}}, 1, 1, .Sine_In)
+    tween.to(sphere, tween.Orientation{glm.quatAxisAngle({1, 0, 0}, glm.PI)}, 2, 1, .Bounce_Out)
+    tween.to(sphere, tween.Scale{{2, 3, 1}}, 2, 3, .Bounce_Out)
+    tween.to(sphere, tween.Scale{{1, 1, 1}}, 2, 8, .Bounce_Out)
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
