@@ -18,7 +18,7 @@ Mesh :: struct {
     hidden: bool,
 }
 
-create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId) {
+create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId = .None) {
     append(&meshes, Mesh{
         mesh_id = id, entity_id = ent_id,
         color = color, tex_unit = assets.tex_unit(tex),
