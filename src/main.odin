@@ -224,17 +224,29 @@ main :: proc() {
         render.render_all_meshes()
 
         // Draw outline around held dice.
-        for d in farkle.round.dice do if d.held {
-            ent := entity.get(d.entity_id)
-            ent.scale += 0.05
-            defer ent.scale -= 0.05
+        for type in farkle.DieType {
+            mesh := render.MeshId.Sphere
+            switch type {
+                case .D4: mesh = .Tetrahedron
+                case .D6: mesh = .Cube
+                case .D8: mesh = .Octahedron
+            }
+            defer render.renderer_flush(mesh)
 
-            render.renderer_draw(.Cube, {
-                transform = entity.transform(d.entity_id),
-                texture = 0,
-                color = {1, 1, 1, 0.25},
-                ent_id = d.entity_id,
-            })
+            for d in farkle.round.dice do if d.held && d.type == type {
+                ent := entity.get(d.entity_id)
+                ent.scale += 0.05
+                defer ent.scale -= 0.05
+
+
+                render.renderer_draw(mesh, {
+                    transform = entity.transform(d.entity_id),
+                    texture = 0,
+                    color = {1, 1, 1, 0.25},
+                    ent_id = d.entity_id,
+                })
+            }
+
         }
         render.renderer_flush(.Cube)
 
