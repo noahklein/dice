@@ -12,3 +12,4 @@
 * Rewards after levels
 * Black hole creates gravity well in center to correct bad dice.
 * Throwing? shaking cup of dice.
+* Physics robustness.
