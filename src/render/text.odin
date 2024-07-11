@@ -4,7 +4,7 @@ import "core:fmt"
 import glm "core:math/linalg/glsl"
 import gl "vendor:OpenGL"
 
-import ft "../lib/freetype"
+import ft "../libs/freetype"
 
 text_render: TextRenderer
 
