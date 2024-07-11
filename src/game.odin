@@ -11,7 +11,7 @@ import "random"
 
 farkle_state := FarkleState.RoundStart
 
-holding_hands: bit_set[farkle.HandType]
+holding_hands, legal_hands: bit_set[farkle.HandType]
 holding_score: int
 
 dice_rolling_time: f32
@@ -75,7 +75,8 @@ update_farkle :: proc(dt: f32) {
         }
 
         // Serenity now, start scoring.
-        if !farkle.is_legal_hand(farkle.count_dice_pips(false)) { // Bust
+        hands, legal := farkle.legal_hands(farkle.count_dice_pips(false))
+        if !legal { // Bust
             set_floor_color({1, 0, 0, 1})
             farkle.round.turns_remaining -= 1
             farkle.round.score = 0
@@ -88,6 +89,7 @@ update_farkle :: proc(dt: f32) {
             return
         }
 
+        legal_hands = hands
         set_floor_color({0, 1, 0.4, 1})
         farkle_state = .HoldingDice
         physics_paused = true
@@ -99,7 +101,6 @@ update_farkle :: proc(dt: f32) {
                 d.held = !d.held
 
                 holding_hands, holding_score = farkle.score_hand(farkle.count_dice_pips(held_only = true))
-                // holding_hand  = .FiveOfAKind
             }
         }
 

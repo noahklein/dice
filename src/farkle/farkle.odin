@@ -57,16 +57,18 @@ count_dice_pips :: proc(held_only: bool) -> map[int]int {
     return pip_counts
 }
 
-is_legal_hand :: proc(pip_counts: map[int]int) -> bool {
+legal_hands :: proc(pip_counts: map[int]int) -> (bit_set[HandType], bool) {
     max_pip: int
     for pip in pip_counts do  max_pip = max(max_pip, pip)
 
+    hands: bit_set[HandType]
+
     // Loose change
-    if 1 in pip_counts || 5 in pip_counts do return true
+    if 1 in pip_counts || 5 in pip_counts do hands += {.LooseChange}
 
     // X of a kind
     for _, count in pip_counts do if count >= 3 {
-        return true
+        hands += {hand_type_of_a_kind(count)}
     }
 
     // Straights
@@ -76,10 +78,10 @@ is_legal_hand :: proc(pip_counts: map[int]int) -> bool {
             end += 1
         }
 
-        if end - start >= 5 do return true
+        if end - start >= 5 do hands += {.Straight}
     }
 
-    return false
+    return hands, hands != {}
 }
 
 // All held dice must contribute to the score or the hand is illegal.

@@ -260,7 +260,7 @@ main :: proc() {
             render.draw_textf({20, 800}, "Physics Paused: %v", physics_paused)
             #partial switch farkle_state {
             case .HoldingDice:
-                render.draw_textf({20, 700}, "Best Hand: %v, %v", farkle.best_hand())
+                render.draw_textf({20, 700}, "Legal Hands: %v", legal_hands)
                 render.draw_textf({20, 680}, "Selected: %v, %v", holding_hands, holding_score)
             case .Rolling:
                 render.draw_textf({20, 700}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
