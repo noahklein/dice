@@ -1,6 +1,5 @@
 package tween
 
-import "core:fmt"
 import "core:math/ease"
 import glm "core:math/linalg/glsl"
 import "../entity"
@@ -30,6 +29,15 @@ to :: proc(ent_id: entity.ID, target: Value, dur: f32, delay: f32 = 0, ease: eas
         dur = dur, delay = delay,
     }
     append(&tweens, tween)
+}
+
+stop :: proc(ent_id: entity.ID) {
+    for i := 0; i < len(tweens); i += 1 {
+        if tweens[i].ent_id == ent_id {
+            unordered_remove(&tweens, i)
+            i -= 1
+        }
+    }
 }
 
 update :: proc(dt: f32) {

@@ -163,6 +163,7 @@ throw_dice :: proc() {
 
     SPAWN_POINT :: glm.vec3{0, 20, 0}
     for &die in farkle.round.dice {
+        tween.stop(die.entity_id)
         die.held = false
 
         ent := entity.get(die.entity_id)
