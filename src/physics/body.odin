@@ -221,6 +221,9 @@ body_inv_inertia :: proc(ent_id: entity.ID, inv_mass: f32, shape: ShapeID) -> gl
                 (12 * inv_mass) / (s.x + s.z),
                 (12 * inv_mass) / (s.z + s.y),
             }
+        case .Octahedron:
+            s := entity.get(ent_id).scale
+            return (6*inv_mass) / s*s
     }
 
     fmt.eprintln("Unsupported shape: can't generate inertia tensor.")

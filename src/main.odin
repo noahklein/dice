@@ -11,6 +11,7 @@ import "vendor:glfw"
 import "assets"
 import "entity"
 import "farkle"
+import "nmath"
 import "physics"
 import "random"
 import "render"
@@ -83,6 +84,12 @@ main :: proc() {
         return
     }
 
+    octahedron_obj, octahedron_err := render.load_obj("assets/octahedron.obj")
+    if octahedron_err != nil {
+        fmt.eprintln("Failed to load octahedron mesh")
+        return
+    }
+
     render.renderer_init(.Cube, cube_obj)
     defer render.renderer_deinit(.Cube)
 
@@ -91,6 +98,9 @@ main :: proc() {
 
     render.renderer_init(.Tetrahedron, tetrahedron_obj)
     defer render.renderer_deinit(.Tetrahedron)
+
+    render.renderer_init(.Octahedron, octahedron_obj)
+    defer render.renderer_deinit(.Octahedron)
 
 
     {
@@ -120,6 +130,23 @@ main :: proc() {
     physics.shapes[.Tetrahedron].vertex_count = len(tetrahedron_obj.vertices)
     for v, i in tetrahedron_obj.vertices {
         physics.shapes[.Tetrahedron].vertices[i] = glm.vec3(v)
+    }
+    physics.shapes[.Octahedron].vertex_count = len(octahedron_obj.vertices)
+    for v, i in octahedron_obj.vertices {
+        physics.shapes[.Octahedron].vertices[i] = glm.vec3(v)
+    }
+
+    for i := 0; i < len(octahedron_obj.faces); i += 3 {
+        get_vertex :: proc(obj: render.Obj, face_index: int) -> glm.vec3 {
+            vi := obj.faces[face_index].vertex_index
+            return glm.vec3(obj.vertices[vi - 1])
+        }
+
+        a := get_vertex(octahedron_obj, i)
+        b := get_vertex(octahedron_obj, i+1)
+        c := get_vertex(octahedron_obj, i+2)
+        plane := nmath.plane_from_tri(a, b, c)
+        fmt.println("oct face normal", plane.normal)
     }
 
     prev_time := glfw.GetTime()
@@ -227,6 +254,11 @@ main :: proc() {
             case .Rolling:
                 render.draw_textf({20, 700}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
+
+            for d in farkle.round.dice do if d.entity_id == hovered_ent_id {
+                pip := farkle.die_facing_up(d.type, entity.get(d.entity_id).orientation)
+                render.draw_textf({20, 600}, "Hovered die pip: %v", pip)
+            }
         }
 
         {
@@ -276,6 +308,7 @@ init_entities :: proc() {
     // Create dice.
     for _, i in farkle.round.dice {
         die_type: farkle.DieType = rand.choice_enum(farkle.DieType)
+        die_type = .D8
         switch die_type {
         case .D4:
             id := entity.new(scale = 3)
@@ -284,9 +317,15 @@ init_entities :: proc() {
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
         case .D6:
             id := entity.new()
-            append(&render.meshes, render.Mesh{entity_id = id, mesh_id = .Cube, color = {1, 0.4, 0.4, 1}, tex_unit = 1})
+            render.create_mesh(.Cube, id, {1, 0.4, 0.4, 1}, .D6)
             physics.bodies_create(id, .Box, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D6 }
+        case .D8:
+            id := entity.new()
+            render.create_mesh(.Octahedron, id, {0.7, 0.4, 1, 1}, .D8)
+            physics.bodies_create(id, .Octahedron, mass = 1)
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
+
         }
     }
 

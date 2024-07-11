@@ -13,7 +13,7 @@ Round :: struct {
     dice: [10]Die,
 }
 
-DieType :: enum { D6, D4 }
+DieType :: enum { D6, D4, D8 }
 Die :: struct {
     entity_id: entity.ID,
     type: DieType,
@@ -118,6 +118,7 @@ die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
     switch type {
         case .D4: return die_facing_up_d4(orientation)
         case .D6: return die_facing_up_d6(orientation)
+        case .D8: return die_facing_up_d8(orientation)
     }
 
     fmt.eprintln("Unrecognized die type:", type)
@@ -160,4 +161,28 @@ die_facing_up_d6 :: proc(orientation: glm.quat) -> int {
     if glm.dot(-dir, UP) > T do return 4
 
     return 0 // No valid side.
+}
+
+die_facing_up_d8 :: proc(orientation: glm.quat) -> int {
+    UP :: glm.vec3{0, 1, 0}
+    T :: 0.75
+
+    X :: glm.SQRT_THREE / 3
+    face_normals := [8]glm.vec3{
+        { X, -X,  X},
+        {-X,  X,  X},
+        {-X, -X,  X},
+        { X,  X,  X},
+        {-X, -X, -X},
+        { X,  X, -X},
+        { X, -X, -X},
+        {-X,  X, -X},
+    }
+
+    for n, pip in face_normals {
+        dir := nmath.rotate_vector(n, orientation)
+        if glm.dot(dir, UP) > T do return pip + 1
+    }
+
+    return 0
 }

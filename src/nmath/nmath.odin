@@ -37,3 +37,21 @@ mat3FromQuat :: proc(q: glm.quat) -> glm.mat3 {
         2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y,
     }
 }
+
+Plane :: struct {
+    normal: glm.vec3,
+    distance: f32,
+}
+
+plane_from_tri :: proc(a, b, c: glm.vec3) -> Plane {
+    ab := b - a
+    ac := c - a
+
+    normal := glm.normalize(glm.cross(ab, ac))
+    return Plane{ normal = normal, distance = -glm.dot(ab, normal) }
+}
+
+plane_project :: proc(plane: Plane, p: glm.vec3) -> glm.vec3 {
+    distance := glm.dot(p, plane.normal) + plane.distance
+    return p - (plane.normal * distance)
+}

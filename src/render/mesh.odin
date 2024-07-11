@@ -6,7 +6,7 @@ import "../assets"
 
 meshes: [dynamic]Mesh
 
-MeshId ::  enum { Cube, Sphere, Tetrahedron }
+MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron }
 mesh_renderers: [MeshId]Renderer
 
 Mesh :: struct {

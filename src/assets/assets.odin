@@ -5,11 +5,12 @@ import "core:fmt"
 textures: [dynamic]Texture
 texture_units: [dynamic]i32 // For shaders, just a range of numbers [0..<len(textures)]
 
-TextureId :: enum u8 { None, D6, D4 }
+TextureId :: enum u8 { None, D6, D4, D8 }
 TEXTURE_PATHS := [TextureId]cstring{
     .None = "",
     .D6 = "assets/die.png",
     .D4 = "assets/tetrahedron.png",
+    .D8 = "assets/octahedron.png",
 }
 
 texture_ids: [TextureId]Texture

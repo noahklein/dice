@@ -1,6 +1,7 @@
 package physics
 
 import glm "core:math/linalg/glsl"
+import "../nmath"
 
 CollisionManifold :: struct {
     normal: glm.vec3,
@@ -117,7 +118,7 @@ new_face :: proc(a, b, c: SimplexPoint) -> Face {
 collision_manifold :: proc(f: Face) -> Manifold {
     a, b, c := f.points[0], f.points[1], f.points[2]
     // Project origin onto triangle.
-    projection_point := plane_project(plane_from_tri(a.p, b.p, c.p), 0)
+    projection_point := nmath.plane_project(nmath.plane_from_tri(a.p, b.p, c.p), 0)
     bary := barycentric(projection_point, a.p, b.p, c.p)
 
     // Do a linear combination of the barycentric coords and triangle support points.
@@ -143,22 +144,4 @@ barycentric :: proc(p, a, b, c: glm.vec3) -> glm.vec3 {
     v := (d11 * d20 - d01 * d21) / denom
     w := (d00 * d21 - d01 * d20) / denom
     return {1.0 - v - w, v, w}
-}
-
-Plane :: struct {
-    normal: glm.vec3,
-    distance: f32,
-}
-
-plane_from_tri :: proc(a, b, c: glm.vec3) -> Plane {
-    ab := b - a
-    ac := c - a
-
-    normal := glm.normalize(glm.cross(ab, ac))
-    return Plane{ normal = normal, distance = -glm.dot(ab, normal) }
-}
-
-plane_project :: proc(plane: Plane, p: glm.vec3) -> glm.vec3 {
-    distance := glm.dot(p, plane.normal) + plane.distance
-    return p - (plane.normal * distance)
 }
