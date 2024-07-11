@@ -8,13 +8,16 @@ import "farkle"
 import "nmath"
 import "physics"
 import "random"
+import "tween"
 
 farkle_state := FarkleState.RoundStart
 
 holding_hands, legal_hands: bit_set[farkle.HandType]
 holding_score: int
 
+wait_for_animation_time: f32
 dice_rolling_time: f32
+
 TIMESCALE :: 2
 DICE_ROLLING_TIME_LIMIT :: 2.0 / TIMESCALE // seconds
 
@@ -93,8 +96,11 @@ update_farkle :: proc(dt: f32) {
         set_floor_color({0, 1, 0.4, 1})
         farkle_state = .HoldingDice
         physics_paused = true
+        wait_for_animation_time = animate_dice_out()
 
     case .HoldingDice:
+        wait_for_animation_time -= dt
+        if wait_for_animation_time > 0 do return
         // Select and deselect dice to hold.
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
@@ -165,4 +171,19 @@ throw_dice :: proc() {
             b.angular_vel = glm.normalize(random.vec3() * 100)
         }
     }
+}
+
+animate_dice_out :: proc() -> f32 {
+    DUR :: 0.75
+    held_count: f32
+    for d in farkle.round.dice do if !d.used {
+        ent := entity.get(d.entity_id)
+        p := ent.pos
+        tween.to(d.entity_id, tween.Pos{p + {0, 30, 0}}, DUR, held_count * DUR, .Circular_In)
+        tween.to(d.entity_id, tween.Pos{p}, DUR, held_count * DUR + DUR, .Circular_Out)
+
+        held_count += 1
+    }
+
+    return DUR + held_count * DUR
 }

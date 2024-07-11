@@ -331,11 +331,6 @@ init_entities :: proc() {
     }
 
     sphere := entity.new({0, 7, 0})
-    render.create_mesh(.Sphere, sphere, tex = .D6)
-    tween.to(sphere, tween.Pos{{0, 10, 0}}, 1, 1, .Sine_In)
-    tween.to(sphere, tween.Orientation{glm.quatAxisAngle({1, 0, 0}, glm.PI)}, 2, 1, .Bounce_Out)
-    tween.to(sphere, tween.Scale{{2, 3, 1}}, 2, 3, .Bounce_Out)
-    tween.to(sphere, tween.Scale{{1, 1, 1}}, 2, 8, .Bounce_Out)
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

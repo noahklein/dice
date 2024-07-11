@@ -1,5 +1,6 @@
 package tween
 
+import "core:fmt"
 import "core:math/ease"
 import glm "core:math/linalg/glsl"
 import "../entity"
@@ -12,6 +13,7 @@ Tween :: struct {
 
     delay, dur: f32,
     curr_time: f32,
+    started: bool,
 
     ease: ease.Ease,
 }
@@ -23,19 +25,10 @@ Scale :: struct { v: glm.vec3 }
 Orientation :: struct { v: glm.quat }
 
 to :: proc(ent_id: entity.ID, target: Value, dur: f32, delay: f32 = 0, ease: ease.Ease = .Linear) {
-    ent := entity.get(ent_id)
-
     tween := Tween{
         ent_id = ent_id, target = target, ease = ease,
         dur = dur, delay = delay,
     }
-
-    switch _ in target {
-        case Pos: tween.initial = Pos{ ent.pos }
-        case Scale: tween.initial = Scale{ ent.scale }
-        case Orientation: tween.initial = Orientation{ ent.orientation }
-    }
-
     append(&tweens, tween)
 }
 
@@ -47,20 +40,32 @@ update :: proc(dt: f32) {
             i -= 1
         }
 
-        if tween.delay > 0 {
-            tween.delay -= dt
-            continue
+        if !tween.started {
+            if tween.delay > 0 {
+                tween.delay -= dt
+                continue
+            }
+            tween.started = true
+            tween.curr_time -= tween.delay
+            tween.delay = 0
+
+            ent := entity.get(tween.ent_id)
+            switch _ in tween.target {
+                case Pos: tween.initial = Pos{ent.pos}
+                case Scale: tween.initial = Scale{ent.scale}
+                case Orientation: tween.initial = Orientation{ent.orientation}
+            }
         }
 
-        tween.curr_time -= tween.delay
-        tween.delay = 0
         tween.curr_time += dt
+        tween.curr_time = clamp(tween.curr_time, 0, tween.dur)
 
         t := ease.ease(tween.ease, tween.curr_time / tween.dur)
+        fmt.println(t)
         ent := entity.get(tween.ent_id)
         switch initial in tween.initial {
         case Pos:
-            ent.pos =   glm.lerp(initial.v, tween.target.(Pos).v, t)
+            ent.pos = glm.lerp(initial.v, tween.target.(Pos).v, t)
         case Scale:
             ent.scale = glm.lerp(initial.v, tween.target.(Scale).v, t)
         case Orientation:
