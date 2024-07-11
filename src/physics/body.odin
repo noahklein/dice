@@ -38,7 +38,7 @@ Collision :: struct{
 
 bodies_create :: proc(id: entity.ID, shape: ShapeID = .Box, mass: f32 = 0,
                       vel: glm.vec3 = 0, ang_vel: glm.vec3 = 0,
-                      restitution: f32 = 0.3) {
+                      restitution: f32 = 0.4) {
     inv_mass := 0 if mass == 0 else 1.0 / mass
     append(&bodies, Body{
         entity_id = id, shape = shape,

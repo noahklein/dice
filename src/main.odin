@@ -308,12 +308,11 @@ init_entities :: proc() {
     // Create dice.
     for _, i in farkle.round.dice {
         die_type: farkle.DieType = rand.choice_enum(farkle.DieType)
-        die_type = .D8
         switch die_type {
         case .D4:
-            id := entity.new(scale = 3)
+            id := entity.new(scale = 3) // @TODO: scale up tetrahedron model.
             render.create_mesh(.Tetrahedron, id, {0.4, 1, 0.4, 1}, .D4)
-            physics.bodies_create(id, .Tetrahedron, mass = 1, restitution = 0.4)
+            physics.bodies_create(id, .Tetrahedron, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
         case .D6:
             id := entity.new()
@@ -325,16 +324,8 @@ init_entities :: proc() {
             render.create_mesh(.Octahedron, id, {1, 1, 1, 1}, .D8)
             physics.bodies_create(id, .Octahedron, mass = 1, restitution = 0.6)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
-
         }
     }
-
-    // sphere := entity.new(pos = {0, 4, 0})
-    // render.create_mesh(.Sphere, sphere, {1, 1, 1, 1}, .None)
-
-    // tetrahedron := entity.new(pos = {3, 10, 0}, scale = 3)
-    // render.create_mesh(.Tetrahedron, tetrahedron, {1, 0.3, 0.7, 1}, .D4)
-    // physics.bodies_create(tetrahedron, .Tetrahedron, mass = 2, ang_vel = 2, restitution = 0.3)
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
