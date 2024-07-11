@@ -11,7 +11,7 @@ import "random"
 
 farkle_state := FarkleState.RoundStart
 
-holding_hand: farkle.HandType
+holding_hands: bit_set[farkle.HandType]
 holding_score: int
 
 dice_rolling_time: f32
@@ -39,7 +39,7 @@ update_farkle :: proc(dt: f32) {
         farkle_state = .ReadyToThrow
     case .ReadyToThrow:
         physics_paused = false
-        holding_hand = nil
+        holding_hands = {}
         holding_score = 0
         if .Fire in input do throw_dice()
     case .Rolling:
@@ -75,9 +75,7 @@ update_farkle :: proc(dt: f32) {
         }
 
         // Serenity now, start scoring.
-        hand_type, _ := farkle.round_score_dice()
-        if hand_type == .Invalid { // Bust
-            fmt.println("bust")
+        if !farkle.is_legal_hand(farkle.count_dice_pips(false)) { // Bust
             set_floor_color({1, 0, 0, 1})
             farkle.round.turns_remaining -= 1
             farkle.round.score = 0
@@ -95,17 +93,21 @@ update_farkle :: proc(dt: f32) {
         physics_paused = true
 
     case .HoldingDice:
+        // Select and deselect dice to hold.
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
                 d.held = !d.held
 
-                holding_hand, holding_score = farkle.round_score_dice(held_only = true)
+                holding_hands, holding_score = farkle.score_hand(farkle.count_dice_pips(held_only = true))
+                // holding_hand  = .FiveOfAKind
             }
         }
 
-        set_floor_color({0.4, 1, 0, 1} if holding_hand == .Invalid else {0.6, 1, 0, 1})
+        invalid := .Invalid in holding_hands
+        // Give some feedback.
+        set_floor_color({0.4, 1, 0, 1} if invalid else {0.6, 1, 0, 1})
 
-        if .Stand in input && holding_hand != .Invalid {
+        if .Stand in input && !invalid {
             farkle.round.total_score += farkle.round.score + holding_score
             farkle.round.score = 0
             farkle.round.turns_remaining -= 1
@@ -117,7 +119,7 @@ update_farkle :: proc(dt: f32) {
             return
         }
 
-        if .Confirm in input && holding_hand != .Invalid {
+        if .Confirm in input && !invalid {
             for &d in farkle.round.dice do if d.held {
                 d.held = false
                 d.used = true
@@ -146,7 +148,9 @@ throw_dice :: proc() {
     set_floor_color({0, 0, 1, 1})
 
     SPAWN_POINT :: glm.vec3{0, 10, 8}
-    for die in farkle.round.dice {
+    for &die in farkle.round.dice {
+        die.held = false
+
         ent := entity.get(die.entity_id)
         if die.used {
             ent.pos = -5000 // Hide it somewhere no one will find it.
