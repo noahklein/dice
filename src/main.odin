@@ -181,6 +181,8 @@ main :: proc() {
 
         update_farkle(dt)
         tween.update(dt)
+        tween.flux_update(dt)
+        camera_update()
 
         // Draw scene to mouse picking framebuffer.
         gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)
@@ -329,8 +331,6 @@ init_entities :: proc() {
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
         }
     }
-
-    sphere := entity.new({0, 7, 0})
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {

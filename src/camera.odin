@@ -40,6 +40,16 @@ look_at :: proc(c: Camera) -> glm.mat4 {
     return glm.mat4LookAt(c.pos, c.pos + c.forward, up)
 }
 
+camera_update :: proc() {
+    yaw, pitch := glm.radians(cam.yaw), glm.radians(cam.pitch)
+    cam.forward = glm.normalize_vec3({
+        glm.cos(yaw) * glm.cos(pitch),
+        glm.sin(pitch),
+        glm.sin(yaw) * glm.cos(pitch),
+    })
+    cam.right = glm.normalize(glm.cross(cam.forward, glm.vec3{0, 1, 0}))
+}
+
 on_mouse_move :: proc(c: ^Camera, mouse: glm.vec2) {
     if !init_mouse {
         c.mouse_pos = mouse
@@ -55,13 +65,7 @@ on_mouse_move :: proc(c: ^Camera, mouse: glm.vec2) {
     c.yaw += diff.x
     c.pitch = clamp(c.pitch + diff.y, -89, 89)
 
-    yaw, pitch := glm.radians(c.yaw), glm.radians(c.pitch)
-    c.forward = glm.normalize_vec3({
-        glm.cos(yaw) * glm.cos(pitch),
-        glm.sin(pitch),
-        glm.sin(yaw) * glm.cos(pitch),
-    })
-    c.right = glm.normalize(glm.cross(c.forward, glm.vec3{0, 1, 0}))
+    camera_update()
 }
 
 mouse_to_ray :: proc(c: Camera, mouse: glm.vec2, screen_size: glm.vec2) -> glm.vec3 {

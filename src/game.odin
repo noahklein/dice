@@ -1,6 +1,5 @@
 package main
 
-import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "core:slice"
 
@@ -195,6 +194,11 @@ animate_dice_out :: proc() -> f32 {
 
         held_count += 1
     }
+
+    delay := f64(held_count * DUR / 4)
+    tween.flux_vec3_to(&cam.pos, {0, 20, 0}, delay = delay)
+    tween.flux_to(&cam.pitch, -89, delay = delay)
+    tween.flux_to(&cam.yaw, -90, delay = delay)
 
     return 2*DUR + held_count * DUR / 4
 }
