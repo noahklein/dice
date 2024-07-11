@@ -52,7 +52,7 @@ update_farkle :: proc(dt: f32) {
         for d in farkle.round.dice do if !d.used {
             // Check if die is in resting position.
             pos := entity.get(d.entity_id).pos
-            if nmath.nearly_eq(pos.y, RESTING_Y[d.type], 0.15) do continue
+            if nmath.nearly_eq(pos.y, RESTING_Y[d.type], 0.1) do continue
 
             is_stable = false
 
