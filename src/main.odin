@@ -250,7 +250,7 @@ main :: proc() {
         }
         render.renderer_flush(.Cube)
 
-        {
+        when ODIN_DEBUG {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
             render.draw_textf({1500, 880}, "%.2f ms",  fps_ms_per_frame)
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
@@ -270,6 +270,9 @@ main :: proc() {
                 pip := farkle.die_facing_up(d.type, entity.get(d.entity_id).orientation)
                 render.draw_textf({20, 600}, "Hovered die pip: %v", pip)
             }
+
+            // The poor man's crosshair.
+            if cursor_hidden do render.draw_text(screen / 2, "o")
         }
 
         {
