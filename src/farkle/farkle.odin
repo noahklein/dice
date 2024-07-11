@@ -13,7 +13,7 @@ Round :: struct {
     dice: [10]Die,
 }
 
-DieType :: enum { D6, D4, D8 }
+DieType :: enum { D4, D6, D8 }
 Die :: struct {
     entity_id: entity.ID,
     type: DieType,

@@ -24,6 +24,8 @@ import farkle "../"
                        7 = 1, 8 = 1, 9 = 1, 10 = 1, 11 = 1}},
         {2000,  {1 = 2, 2 = 2, 3 = 2, 4 = 2, 5 = 2}},
 
+        {2500, {1 = 3, 3 = 3, 6 = 4}},
+
         {0, {1 = 5, 2 = 1}},
     }
     defer for tc in CASES do delete_map(tc.pcs)
@@ -53,6 +55,8 @@ import farkle "../"
 
         {{.Straight, .FourOfAKind},  {1 = 1, 2 = 1, 3 = 5, 4 = 1, 5 = 1}},
         {{.Straight, .LooseChange},  {1 = 2, 2 = 1, 3 = 1, 4 = 1, 5 = 2}},
+
+        {{.ThreeOfAKind, .FourOfAKind}, {1 = 3, 3 = 3, 6 = 4}},
 
         {{.Invalid}, {1 = 5, 2 = 1}},
     }
