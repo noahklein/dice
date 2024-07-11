@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:slice"
 
 import "entity"
 import "farkle"
@@ -176,14 +177,24 @@ throw_dice :: proc() {
 animate_dice_out :: proc() -> f32 {
     DUR :: 0.75
     held_count: f32
-    for d in farkle.round.dice do if !d.used {
+    dice := farkle.round.dice[:]
+    slice.sort_by_key(dice, proc(d: farkle.Die) -> f32 {
+        pip := farkle.die_facing_up(d.type, entity.get(d.entity_id).orientation)
+        return f32(pip) + 0.1 * f32(d.type)
+    })
+
+    for d in dice do if !d.used {
         ent := entity.get(d.entity_id)
         p := ent.pos
-        tween.to(d.entity_id, tween.Pos{p + {0, 30, 0}}, DUR, held_count * DUR, .Circular_In)
-        tween.to(d.entity_id, tween.Pos{p}, DUR, held_count * DUR + DUR, .Circular_Out)
+
+        delay := held_count * DUR / 4
+        x := 3 * f32((int(held_count) % 5) - 2)
+        z := 3 * f32((int(held_count) / 5) - 2)
+        tween.to(d.entity_id, tween.Pos{{x, p.y + 30, z}}, DUR, held_count * DUR / 4, .Circular_In)
+        tween.to(d.entity_id, tween.Pos{{x, 1, z}}, 2*DUR, delay + DUR, .Bounce_Out)
 
         held_count += 1
     }
 
-    return DUR + held_count * DUR
+    return 2*DUR + held_count * DUR / 4
 }
