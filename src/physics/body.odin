@@ -8,7 +8,7 @@ import "../nmath"
 bodies := make([dynamic]Body, 0, 128)
 body_dt_acc: f32
 
-DT :: 1.0 / 1000.0
+DT :: 1.0 / 1500.0
 GRAVITY :: glm.vec3{0, -9.8, 0}
 MAX_SPEED :: 64
 MAX_ANG_SPEED :: 10

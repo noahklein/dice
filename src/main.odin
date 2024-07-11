@@ -150,7 +150,6 @@ main :: proc() {
     }
 
     prev_time := glfw.GetTime()
-    timescale: f32 = 2
 
     init_entities()
     init_camera(1600.0 / 900.0)
@@ -185,7 +184,7 @@ main :: proc() {
 
         handle_input(window, dt)
         if !physics_paused {
-            physics.bodies_update(timescale * dt)
+            physics.bodies_update(TIMESCALE * dt)
         }
 
         hovered_ent_id = entity.ID(render.mouse_picking_read(mouse_pick, mouse_coords))

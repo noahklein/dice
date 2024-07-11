@@ -15,7 +15,8 @@ holding_hand: farkle.HandType
 holding_score: int
 
 dice_rolling_time: f32
-DICE_ROLLING_TIME_LIMIT :: 3.5 // seconds
+TIMESCALE :: 0.5
+DICE_ROLLING_TIME_LIMIT :: 7.0 / TIMESCALE // seconds
 
 // Y position of a resting die.
 RESTING_Y := [farkle.DieType]f32{
@@ -57,14 +58,14 @@ update_farkle :: proc(dt: f32) {
 
             // Push unresting bodies towards center.
             for &b in physics.bodies do if b.entity_id == d.entity_id {
-                b.vel += glm.vec3{0, 4, 0} - pos
+                b.vel += glm.vec3{0, 7, 0} - pos
                 break
             }
         }
 
         // Add more time to allow moved dice to settle.
         if !is_stable {
-            dice_rolling_time = 0.6 * DICE_ROLLING_TIME_LIMIT
+            dice_rolling_time = 0.5 * DICE_ROLLING_TIME_LIMIT
             return
         }
 
@@ -145,8 +146,8 @@ throw_dice :: proc() {
         ent.orientation = random.quat()
 
         for &b in physics.bodies do if b.entity_id == die.entity_id {
-            b.vel = {0, 0, -30}
-            b.angular_vel = glm.normalize(random.vec3() + 0.01)
+            b.vel = {0, 0, -50}
+            b.angular_vel = glm.normalize(random.vec3() * 100)
         }
     }
 }
