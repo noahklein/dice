@@ -4,10 +4,6 @@
         {
             "name": "core",
             "path": "/home/noah/odin/core"
-        },
-        {
-            "name": "vendor",
-            "path": "/home/noah/odin/vendor"
         }
     ],
     "checker_args": "-debug -vet-style -vet-semicolon -vet-unused",
