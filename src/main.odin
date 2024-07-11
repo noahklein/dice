@@ -13,7 +13,7 @@ import "assets"
 import "entity"
 import "farkle"
 import "physics"
-import "random"
+import "nmath/random"
 import "render"
 import "tween"
 

@@ -8,7 +8,7 @@ import "entity"
 import "farkle"
 import "nmath"
 import "physics"
-import "random"
+import "nmath/random"
 import "tween"
 
 farkle_state := FarkleState.RoundStart
