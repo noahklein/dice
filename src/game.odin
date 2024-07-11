@@ -65,7 +65,8 @@ update_farkle :: proc(dt: f32) {
                 if !nmath.nearly_eq_vector(b.vel, 0, 0.1) || !nmath.nearly_eq_vector(b.angular_vel, 0, 0.1) {
                     continue // Object is not at rest.
                 }
-                force := glm.vec3{0, 7, 0} - pos
+                force_xz := random.unit_vec2() * 8
+                force := glm.vec3{force_xz.x, 10, force_xz.y}
                 b.vel += force if glm.length(force) > 5 else force + 5
 
                 break
@@ -160,7 +161,7 @@ throw_dice :: proc() {
     farkle_state = .Rolling
     set_floor_color({0, 0, 1, 1})
 
-    SPAWN_POINT :: glm.vec3{0, 10, 8}
+    SPAWN_POINT :: glm.vec3{0, 20, 0}
     for &die in farkle.round.dice {
         die.held = false
 
@@ -169,12 +170,13 @@ throw_dice :: proc() {
             ent.pos = -5000 // Hide it somewhere no one will find it.
             continue
         }
-        ent.pos = SPAWN_POINT - 4*random.vec3()
+        ent.pos = SPAWN_POINT - 3*random.vec3()
         ent.orientation = random.quat()
 
         for &b in physics.bodies do if b.entity_id == die.entity_id {
-            b.vel = {0, 0, -50}
-            b.angular_vel = glm.normalize(random.vec3() * 100)
+            xz := random.unit_vec2() * physics.MAX_SPEED
+            b.vel = {xz.x, -10, xz.y}
+            b.angular_vel = random.unit_vec3() * physics.MAX_ANG_SPEED
         }
     }
 }

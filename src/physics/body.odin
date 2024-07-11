@@ -38,7 +38,7 @@ Collision :: struct{
 
 bodies_create :: proc(id: entity.ID, shape: ShapeID = .Box, mass: f32 = 0,
                       vel: glm.vec3 = 0, ang_vel: glm.vec3 = 0,
-                      restitution: f32 = 0.4) {
+                      restitution: f32 = 0.7) {
     inv_mass := 0 if mass == 0 else 1.0 / mass
     append(&bodies, Body{
         entity_id = id, shape = shape,
@@ -101,6 +101,10 @@ bodies_fixed_update :: proc() {
     clear(&collisions)
     for a, i in colliders[:len(bodies) - 1] {
         for b in colliders[i+1:] {
+            is_a_static := bodies[a.body_id].inv_mass == 0
+            is_b_static := bodies[b.body_id].inv_mass == 0
+            if is_a_static && is_b_static do continue
+
             aabb_vs_aabb(a.aabb, b.aabb) or_continue
             simplex := gjk_is_colliding(a, b) or_continue
             manifold := epa(a, b, simplex)
