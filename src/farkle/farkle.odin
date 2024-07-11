@@ -38,7 +38,7 @@ hand_type_of_a_kind :: #force_inline proc(count: int) -> HandType {
         case 4: return .FourOfAKind
         case 5: return .FiveOfAKind
         case 6: return .SixOfAKind
-        case count > 7: return .TooManyOfAKind
+        case 7..<20: return .TooManyOfAKind
     }
 
     return .Invalid
