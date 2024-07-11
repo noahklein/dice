@@ -26,7 +26,7 @@ physics_paused: bool
 screen: glm.vec2
 mouse_coords: glm.vec2
 mouse_pick: render.MousePicking
-hovered_ent_id: entity.ID
+hovered_ent_id, floor_ent_id: entity.ID
 
 Input :: enum { Fire, Confirm, Stand }
 input: bit_set[Input]
@@ -300,6 +300,7 @@ init_entities :: proc() {
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
     render.create_mesh(.Cube, floor, {0, 0, 1, 1}, .None)
     physics.bodies_create(floor, .Box, restitution = 1)
+    floor_ent_id = floor
 
     roof := entity.new(pos = {0, -5 + WALL_HEIGHT, 0}, scale = {FLOOR_SIZE, 3, FLOOR_SIZE})
     // append(&render.meshes, render.Mesh{entity_id = roof, color = {0, 0, 1, 1}})
@@ -436,4 +437,10 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
 
     t := glm.dot(p_center - r_origin, p_norm) / denom
     return t, t > 0
+}
+
+set_floor_color :: proc(color: [4]f32) {
+    for &m in render.meshes do if m.entity_id == floor_ent_id {
+        m.color = color
+    }
 }

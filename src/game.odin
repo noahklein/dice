@@ -78,6 +78,7 @@ update_farkle :: proc(dt: f32) {
         hand_type, _ := farkle.round_score_dice()
         if hand_type == .Invalid { // Bust
             fmt.println("bust")
+            set_floor_color({1, 0, 0, 1})
             farkle.round.turns_remaining -= 1
             farkle.round.score = 0
             // @TODO: check for loss.
@@ -89,6 +90,7 @@ update_farkle :: proc(dt: f32) {
             return
         }
 
+        set_floor_color({0, 1, 0.4, 1})
         farkle_state = .HoldingDice
         physics_paused = true
 
@@ -100,6 +102,8 @@ update_farkle :: proc(dt: f32) {
                 holding_hand, holding_score = farkle.round_score_dice(held_only = true)
             }
         }
+
+        set_floor_color({0.4, 1, 0, 1} if holding_hand == .Invalid else {0.6, 1, 0, 1})
 
         if .Stand in input && holding_hand != .Invalid {
             farkle.round.total_score += farkle.round.score + holding_score
@@ -139,6 +143,7 @@ throw_dice :: proc() {
 
     dice_rolling_time = 0
     farkle_state = .Rolling
+    set_floor_color({0, 0, 1, 1})
 
     SPAWN_POINT :: glm.vec3{0, 10, 8}
     for die in farkle.round.dice {
