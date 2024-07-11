@@ -148,17 +148,17 @@ die_facing_up_d6 :: proc(orientation: glm.quat) -> int {
     UP :: glm.vec3{0, 1, 0}
     T  :: 0.75 // Threshold for cosine similarity.
 
-    dir := nmath.rotate_vector({0, 1, 0}, orientation)
-    if glm.dot( dir, UP) > T do return 5
-    if glm.dot(-dir, UP) > T do return 2
+    FACE_NORMALS :: [?]glm.vec3{
+        {-1,  0, 0},
+        { 0, -1, 0},
+        { 0,  0, 1},
+    }
 
-    dir = nmath.rotate_vector({1, 0, 0}, orientation)
-    if glm.dot( dir, UP) > T do return 6
-    if glm.dot(-dir, UP) > T do return 1
-
-    dir = nmath.rotate_vector({0, 0, 1}, orientation)
-    if glm.dot( dir, UP) > T do return 3
-    if glm.dot(-dir, UP) > T do return 4
+    for n, pip in FACE_NORMALS {
+        dir := nmath.rotate_vector(n, orientation)
+        if glm.dot( dir, UP) > T do return pip + 1
+        if glm.dot(-dir, UP) > T do return 7 - (pip+1)
+    }
 
     return 0 // No valid side.
 }
@@ -168,20 +168,17 @@ die_facing_up_d8 :: proc(orientation: glm.quat) -> int {
     T :: 0.75
 
     X :: glm.SQRT_THREE / 3
-    face_normals := [8]glm.vec3{
+    FACE_NORMALS :: [?]glm.vec3{
         { X, -X,  X},
         {-X,  X,  X},
         {-X, -X,  X},
         { X,  X,  X},
-        {-X, -X, -X},
-        { X,  X, -X},
-        { X, -X, -X},
-        {-X,  X, -X},
     }
 
-    for n, pip in face_normals {
+    for n, pip in FACE_NORMALS {
         dir := nmath.rotate_vector(n, orientation)
-        if glm.dot(dir, UP) > T do return pip + 1
+        if glm.dot( dir, UP) > T do return pip + 1
+        if glm.dot(-dir, UP) > T do return 9 - (pip+1)
     }
 
     return 0
