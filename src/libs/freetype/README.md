@@ -25,7 +25,3 @@ On Windows, you can run the demo under the `demo` folder. The demo renders a ser
 cd demo
 odin run .\
 ```
-
-
-
-test
