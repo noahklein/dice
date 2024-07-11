@@ -2,6 +2,7 @@ package main
 
 import glm "core:math/linalg/glsl"
 import "core:slice"
+import "core:time"
 
 import "entity"
 import "farkle"
@@ -150,6 +151,11 @@ update_farkle :: proc(dt: f32) {
 throw_dice :: proc() {
     if farkle_state != .ReadyToThrow do return
 
+    CAM_DUR :: 100 * time.Millisecond
+    tween.flux_vec3_to(&cam.pos, {0, 20, 20}, dur = CAM_DUR)
+    tween.flux_to(&cam.yaw, -90, dur = CAM_DUR)
+    tween.flux_to(&cam.pitch, -30, dur = CAM_DUR)
+
     dice_rolling_time = 0
     farkle_state = .Rolling
     set_floor_color({0, 0, 1, 1})
@@ -187,8 +193,8 @@ animate_dice_out :: proc() -> f32 {
         p := ent.pos
 
         delay := held_count * DUR / 4
-        x := 3 * f32((int(held_count) % 5) - 2)
-        z := 3 * f32((int(held_count) / 5) - 2)
+        x := 3.2 * f32((int(held_count) % 5) - 2)
+        z := 3.2 * f32((int(held_count) / 5) - 2)
         tween.to(d.entity_id, tween.Pos{{x, p.y + 30, z}}, DUR, held_count * DUR / 4, .Circular_In)
         tween.to(d.entity_id, tween.Pos{{x, 1, z}}, 2*DUR, delay + DUR, .Bounce_Out)
 

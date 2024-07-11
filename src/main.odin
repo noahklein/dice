@@ -4,6 +4,7 @@ import "base:runtime"
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "core:math/rand"
+import "core:strings"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -250,8 +251,12 @@ main :: proc() {
             render.draw_textf({20, 800}, "Physics Paused: %v", physics_paused)
             #partial switch farkle_state {
             case .HoldingDice:
-                render.draw_textf({20, 700}, "Legal Hands: %v", legal_hands)
-                render.draw_textf({20, 680}, "Selected: %v, %v", holding_hands, holding_score)
+                render.draw_textf({20, 700}, "Legal Hands: %v", bit_set_to_string(legal_hands))
+                render.draw_textf({20, 680}, "Selected: %v, %v", bit_set_to_string(holding_hands), holding_score)
+
+                score_str := fmt.tprint(holding_score)
+                score_width := len(score_str) * 5 * 2
+                render.draw_textf(screen / 2 - {f32(score_width), screen.y / 5}, "%v", holding_score, scale = 2)
             case .Rolling:
                 render.draw_textf({20, 700}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
@@ -436,4 +441,10 @@ set_floor_color :: proc(color: [4]f32) {
     for &m in render.meshes do if m.entity_id == floor_ent_id {
         m.color = color
     }
+}
+
+bit_set_to_string :: proc(bs: bit_set[$T]) -> string {
+    strs := make([dynamic]string, context.temp_allocator)
+    for b in bs do append(&strs, fmt.tprint(b))
+    return strings.join(strs[:], " ")
 }
