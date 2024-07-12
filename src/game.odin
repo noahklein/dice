@@ -37,6 +37,11 @@ FarkleState :: enum {
 }
 
 update_farkle :: proc(dt: f32) {
+    if wait_for_animation_time > 0 {
+        wait_for_animation_time -= dt
+        if wait_for_animation_time > 0 do return
+    }
+
     switch farkle_state {
     case .RoundStart:
         farkle.round.turns_remaining = 3
@@ -62,12 +67,16 @@ update_farkle :: proc(dt: f32) {
 
             // Push unresting bodies towards center.
             for &b in physics.bodies do if b.entity_id == d.entity_id {
-                if !nmath.nearly_eq_vector(b.vel, 0, 0.1) || !nmath.nearly_eq_vector(b.angular_vel, 0, 0.1) {
+                AT_REST_EPSILON :: 0.05
+                // @TODO: gives false positives. Some objects appear at rest before they topple over.
+                // Should sample over multiple frames instead. Maybe add an at_rest_time to each die.
+                if !nmath.nearly_eq_vector(b.vel, 0, AT_REST_EPSILON) || !nmath.nearly_eq_vector(b.angular_vel, 0, AT_REST_EPSILON) {
                     continue // Object is not at rest.
                 }
-                force_xz := random.unit_vec2() * 8
-                force := glm.vec3{force_xz.x, 10, force_xz.y}
-                b.vel += force if glm.length(force) > 5 else force + 5
+                force: glm.vec3 = (random.unit_vec2() * 7).xxy
+                force.y = 8
+                b.vel += force
+                // @TODO: decrease restitution coefficient.
 
                 break
             }
@@ -101,8 +110,6 @@ update_farkle :: proc(dt: f32) {
         wait_for_animation_time = animate_dice_out()
 
     case .HoldingDice:
-        wait_for_animation_time -= dt
-        if wait_for_animation_time > 0 do return
         // Select and deselect dice to hold.
         if .Fire in input do for &d in farkle.round.dice {
             if d.entity_id == hovered_ent_id {
@@ -152,10 +159,11 @@ update_farkle :: proc(dt: f32) {
 throw_dice :: proc() {
     if farkle_state != .ReadyToThrow do return
 
-    CAM_DUR :: 100 * time.Millisecond
+    CAM_DUR :: 500 * time.Millisecond
     tween.flux_vec3_to(&cam.pos, {0, 20, 20}, dur = CAM_DUR)
     tween.flux_to(&cam.yaw, -90, dur = CAM_DUR)
-    tween.flux_to(&cam.pitch, -30, dur = CAM_DUR)
+    tween.flux_to(&cam.pitch, -40, dur = CAM_DUR)
+    wait_for_animation_time = f32(CAM_DUR) / f32(time.Second)
 
     dice_rolling_time = 0
     farkle_state = .Rolling
