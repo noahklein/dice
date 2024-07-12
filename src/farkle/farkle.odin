@@ -157,10 +157,6 @@ score_hand :: proc(pip_counts: map[int]int) -> (hands: bit_set[HandType], score:
     return
 }
 
-best_hand :: proc() -> (string, string) {
-    return "TO", "DO"
-}
-
 die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
     switch type {
         case .D4: return die_facing_up_d4(orientation)
