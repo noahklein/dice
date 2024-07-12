@@ -10,10 +10,10 @@ round: Round
 Round :: struct {
     turns_remaining: int,
     score, total_score: int,
-    dice: [10]Die,
+    dice: [15]Die,
 }
 
-DieType :: enum { D4, D6, D8 }
+DieType :: enum { D4, D6, Even, Odd, D8 }
 Die :: struct {
     entity_id: entity.ID,
     type: DieType,
@@ -166,6 +166,12 @@ die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
         case .D4: return die_facing_up_d4(orientation)
         case .D6: return die_facing_up_d6(orientation)
         case .D8: return die_facing_up_d8(orientation)
+        case .Even:
+            p := die_facing_up_d6(orientation)
+            return p if p % 2 == 0 else 7 - p
+        case .Odd:
+            p := die_facing_up_d6(orientation)
+            return p if p % 2 != 0 else 7 - p
     }
 
     fmt.eprintln("Unrecognized die type:", type)

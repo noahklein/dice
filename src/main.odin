@@ -218,8 +218,8 @@ main :: proc() {
         for type in farkle.DieType {
             mesh := render.MeshId.Sphere
             switch type {
+                case .D6, .Even, .Odd: mesh = .Cube
                 case .D4: mesh = .Tetrahedron
-                case .D6: mesh = .Cube
                 case .D8: mesh = .Octahedron
             }
             defer render.renderer_flush(mesh)
@@ -324,17 +324,27 @@ init_entities :: proc() {
             id := entity.new(scale = 3) // @TODO: scale up tetrahedron model.
             render.create_mesh(.Tetrahedron, id, {0.4, 1, 0.4, 1}, .D4)
             physics.bodies_create(id, .Tetrahedron, mass = 1)
-            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D4 }
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .D6:
             id := entity.new()
             render.create_mesh(.Cube, id, {1, 0.4, 0.4, 1}, .D6)
             physics.bodies_create(id, .Box, mass = 1)
-            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D6 }
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
+        case .Even:
+            id := entity.new()
+            render.create_mesh(.Cube, id, {0.4, 0.4, 1, 1}, .Even)
+            physics.bodies_create(id, .Box, mass = 1)
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
+        case .Odd:
+            id := entity.new()
+            render.create_mesh(.Cube, id, {0.4, 1, 0.4, 1}, .Odd)
+            physics.bodies_create(id, .Box, mass = 1)
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .D8:
             id := entity.new()
             render.create_mesh(.Octahedron, id, {1, 1, 1, 1}, .D8)
             physics.bodies_create(id, .Octahedron, mass = 1)
-            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = .D8 }
+            farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         }
     }
 }

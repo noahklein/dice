@@ -24,7 +24,7 @@ DICE_ROLLING_TIME_LIMIT :: 2.0 / TIMESCALE // seconds
 
 // Y position of a resting die.
 RESTING_Y := [farkle.DieType]f32{
-    .D6 = 1.00,
+    .D6 = 1, .Even = 1, .Odd = 1,
     .D4 = 0.562, // Assumes scale = 3
     .D8 = 0.971,
 }
