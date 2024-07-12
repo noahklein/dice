@@ -49,7 +49,7 @@ count_dice_pips :: proc(held_only: bool) -> map[int]int {
     for die in round.dice {
         if die.used || (held_only && !die.held) do continue
         pip := die_facing_up(die.type, entity.get(die.entity_id).orientation)
-        if pip == 0 do fmt.eprintfln("Bad die in is_legal_hand()")
+        if pip == 0 do fmt.eprintfln("Bad die")
 
         pip_counts[pip] = pip_counts[pip] + 1
     }
