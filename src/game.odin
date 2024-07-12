@@ -47,7 +47,6 @@ update_farkle :: proc(dt: f32) {
         farkle.round.turns_remaining = 3
         farkle_state = .ReadyToThrow
     case .ReadyToThrow:
-        physics_paused = false
         holding_hands = {}
         holding_score = 0
         if .Fire in input do throw_dice()
@@ -128,6 +127,8 @@ update_farkle :: proc(dt: f32) {
             farkle.round.score = 0
             farkle.round.turns_remaining -= 1
             farkle_state = .ReadyToThrow
+
+            wait_for_animation_time = animate_dice_held()
             for &d in farkle.round.dice {
                 d.used = false
                 d.held = false
@@ -136,6 +137,7 @@ update_farkle :: proc(dt: f32) {
         }
 
         if .Confirm in input && !invalid {
+            wait_for_animation_time = animate_dice_held()
             for &d in farkle.round.dice do if d.held {
                 d.held = false
                 d.used = true
@@ -163,7 +165,6 @@ throw_dice :: proc() {
     tween.flux_vec3_to(&cam.pos, {0, 20, 20}, dur = CAM_DUR)
     tween.flux_to(&cam.yaw, -90, dur = CAM_DUR)
     tween.flux_to(&cam.pitch, -40, dur = CAM_DUR)
-    wait_for_animation_time = f32(CAM_DUR) / f32(time.Second)
 
     dice_rolling_time = 0
     farkle_state = .Rolling
@@ -188,6 +189,7 @@ throw_dice :: proc() {
             b.angular_vel = random.unit_vec3() * physics.MAX_ANG_SPEED
         }
     }
+    physics_paused = false
 }
 
 animate_dice_out :: proc() -> f32 {
@@ -218,4 +220,15 @@ animate_dice_out :: proc() -> f32 {
     tween.flux_to(&cam.yaw, -90, delay = delay)
 
     return 2*DUR + held_count * DUR / 4
+}
+
+animate_dice_held :: proc() -> f32 {
+    delay: f32
+    for d in farkle.round.dice do if d.held {
+        pos := entity.get(d.entity_id).pos
+        tween.to(d.entity_id, tween.Pos{pos + {0, 30, 0}}, 0.5, delay = delay, ease = .Quadratic_In)
+        delay += 0.1
+    }
+
+    return delay + 0.5
 }
