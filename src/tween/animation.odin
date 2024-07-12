@@ -11,7 +11,7 @@ Tween :: struct {
     initial, target: Value,
 
     delay, dur: f32,
-    curr_time: f32,
+    elapsed: f32,
     started: bool,
 
     ease: ease.Ease,
@@ -43,7 +43,7 @@ stop :: proc(ent_id: entity.ID) {
 update :: proc(dt: f32) {
     for i := 0; i < len(tweens); i += 1 {
         tween := &tweens[i]
-        defer if tween.curr_time >= tween.dur {
+        defer if tween.elapsed >= tween.dur {
             unordered_remove(&tweens, i)
             i -= 1
         }
@@ -54,7 +54,7 @@ update :: proc(dt: f32) {
                 continue
             }
             tween.started = true
-            tween.curr_time -= tween.delay
+            tween.elapsed -= tween.delay
             tween.delay = 0
 
             ent := entity.get(tween.ent_id)
@@ -65,10 +65,10 @@ update :: proc(dt: f32) {
             }
         }
 
-        tween.curr_time += dt
-        tween.curr_time = clamp(tween.curr_time, 0, tween.dur)
+        tween.elapsed += dt
+        tween.elapsed = clamp(tween.elapsed, 0, tween.dur)
 
-        t := ease.ease(tween.ease, tween.curr_time / tween.dur)
+        t := ease.ease(tween.ease, tween.elapsed / tween.dur)
         ent := entity.get(tween.ent_id)
         switch initial in tween.initial {
         case Pos:
