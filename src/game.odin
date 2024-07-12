@@ -92,8 +92,11 @@ update_farkle :: proc(dt: f32) {
         if !legal { // Bust
             set_floor_color({1, 0, 0, 1})
             farkle.round.turns_remaining -= 1
+            if farkle.round.turns_remaining <= 0 {
+                // Loss
+                wait_for_animation_time = animate_dice_held(false)
+            }
             farkle.round.score = 0
-            // @TODO: check for loss.
             for &d in farkle.round.dice {
                 d.held = false
                 d.used = false
@@ -127,8 +130,12 @@ update_farkle :: proc(dt: f32) {
             farkle.round.score = 0
             farkle.round.turns_remaining -= 1
             farkle_state = .ReadyToThrow
+            if farkle.round.turns_remaining <= 0 {
+                // Loss
+                wait_for_animation_time = animate_dice_held(false)
+            }
 
-            wait_for_animation_time = animate_dice_held()
+            wait_for_animation_time = animate_dice_held(true)
             for &d in farkle.round.dice {
                 d.used = false
                 d.held = false
@@ -137,7 +144,7 @@ update_farkle :: proc(dt: f32) {
         }
 
         if .Confirm in input && !invalid {
-            wait_for_animation_time = animate_dice_held()
+            wait_for_animation_time = animate_dice_held(true)
             for &d in farkle.round.dice do if d.held {
                 d.held = false
                 d.used = true
@@ -222,9 +229,9 @@ animate_dice_out :: proc() -> f32 {
     return 2*DUR + held_count * DUR / 4
 }
 
-animate_dice_held :: proc() -> f32 {
+animate_dice_held :: proc(held_only := false) -> f32 {
     delay: f32
-    for d in farkle.round.dice do if d.held {
+    for d in farkle.round.dice do if !held_only || d.held {
         pos := entity.get(d.entity_id).pos
         tween.to(d.entity_id, tween.Pos{pos + {0, 30, 0}}, 0.5, delay = delay, ease = .Quadratic_In)
         delay += 0.1
