@@ -121,7 +121,7 @@ update_farkle :: proc(dt: f32) {
             }
         }
 
-        invalid := .Invalid in holding_hands
+        invalid := .Invalid in holding_hands || holding_hands == {}
         // Give some feedback.
         set_floor_color({0.4, 1, 0, 1} if invalid else {0.6, 1, 0, 1})
 
@@ -232,8 +232,8 @@ animate_dice_out :: proc() -> f32 {
 animate_dice_held :: proc(held_only := false) -> f32 {
     delay: f32
     for d in farkle.round.dice do if !held_only || d.held {
-        pos := entity.get(d.entity_id).pos
-        tween.to(d.entity_id, tween.Pos{pos + {0, 30, 0}}, 0.5, delay = delay, ease = .Quadratic_In)
+        target := entity.get(d.entity_id).pos + {0, 30, 0}
+        tween.to(d.entity_id, tween.Pos{target}, 0.5, delay = delay, ease = .Quadratic_In)
         delay += 0.1
     }
 
