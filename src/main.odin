@@ -233,7 +233,7 @@ main :: proc() {
                 render.renderer_draw(mesh, {
                     transform = entity.transform(d.entity_id),
                     texture = 0,
-                    color = {1, 1, 1, 0.25},
+                    color = {1, 1, 1, 0.5},
                     ent_id = d.entity_id,
                 })
             }
