@@ -63,9 +63,12 @@ bodies_fixed_update :: proc() {
     for &body in bodies do if body.inv_mass != 0 {
         // Integrate acceleration.
         body.force += GRAVITY / body.inv_mass
+        defer body.force = 0
         accel := body.force * body.inv_mass
         body.vel += accel * DT
-        body.force = 0
+
+        linear_damping :: 0.3
+        body.vel *= 1 / (1 + DT * linear_damping)
 
         if glm.length(body.vel) > MAX_SPEED {
             body.vel = glm.normalize(body.vel) * MAX_SPEED
@@ -74,6 +77,9 @@ bodies_fixed_update :: proc() {
         // Integrate angular acceleration.
         body_update_inertia(&body)
         body.angular_vel += body.inv_inertia_tensor * body.torque * DT
+
+        angular_damping :: 0.2
+        body.angular_vel *= 1 / (1 + DT * angular_damping)
 
         if mag := glm.length(body.angular_vel); mag > MAX_ANG_SPEED {
             body.angular_vel *= MAX_ANG_SPEED / mag
