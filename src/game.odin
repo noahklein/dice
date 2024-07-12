@@ -94,7 +94,7 @@ update_farkle :: proc(dt: f32) {
             farkle.round.turns_remaining -= 1
             if farkle.round.turns_remaining <= 0 {
                 // Loss
-                wait_for_animation_time = animate_dice_held(false)
+                wait_for_animation_time = animate_dice_out()
             }
             farkle.round.score = 0
             for &d in farkle.round.dice {
@@ -109,7 +109,7 @@ update_farkle :: proc(dt: f32) {
         set_floor_color({0, 1, 0.4, 1})
         farkle_state = .HoldingDice
         physics_paused = true
-        wait_for_animation_time = animate_dice_out()
+        wait_for_animation_time = animate_dice_done_rolling()
 
     case .HoldingDice:
         // Select and deselect dice to hold.
@@ -132,10 +132,10 @@ update_farkle :: proc(dt: f32) {
             farkle_state = .ReadyToThrow
             if farkle.round.turns_remaining <= 0 {
                 // Loss
-                wait_for_animation_time = animate_dice_held(false)
+                wait_for_animation_time = animate_dice_out()
             }
 
-            wait_for_animation_time = animate_dice_held(true)
+            wait_for_animation_time = animate_dice_out(held_only = true)
             for &d in farkle.round.dice {
                 d.used = false
                 d.held = false
@@ -144,7 +144,7 @@ update_farkle :: proc(dt: f32) {
         }
 
         if .Confirm in input && !invalid {
-            wait_for_animation_time = animate_dice_held(true)
+            wait_for_animation_time = animate_dice_out(held_only = true)
             for &d in farkle.round.dice do if d.held {
                 d.held = false
                 d.used = true
@@ -199,7 +199,7 @@ throw_dice :: proc() {
     physics_paused = false
 }
 
-animate_dice_out :: proc() -> f32 {
+animate_dice_done_rolling :: proc() -> f32 {
     DUR :: 0.75
     held_count: f32
     dice := farkle.round.dice[:]
@@ -229,7 +229,7 @@ animate_dice_out :: proc() -> f32 {
     return 2*DUR + held_count * DUR / 4
 }
 
-animate_dice_held :: proc(held_only := false) -> f32 {
+animate_dice_out :: proc(held_only := false) -> f32 {
     delay: f32
     for d in farkle.round.dice do if !held_only || d.held {
         target := entity.get(d.entity_id).pos + {0, 30, 0}
