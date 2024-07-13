@@ -210,6 +210,8 @@ main :: proc() {
             gl.BindTextureUnit(tex.unit, tex.id)
         }
 
+        render.draw_mesh(.Octahedron, { pos = {1, 2, 1}, orientation = 1, scale = 1}, {1, 1, 1, 1}, .Even)
+
         render.render_all_meshes()
 
         // Draw outline around held dice.
@@ -234,7 +236,6 @@ main :: proc() {
                     ent_id = d.entity_id,
                 })
             }
-
         }
         render.renderer_flush(.Cube)
 

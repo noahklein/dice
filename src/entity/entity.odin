@@ -36,17 +36,14 @@ get :: proc(id: ID) -> ^Entity {
     return &entities[id]
 }
 
-transform :: proc(id: ID) -> glm.mat4 {
-    e := entities[id]
-    m := glm.mat4Translate(e.pos) * glm.mat4FromQuat(e.orientation) * glm.mat4Scale(e.scale)
-    return m
+transform :: proc{
+    transform_id,
+    transform_ent,
 }
 
-mat3ToMat4 :: #force_inline proc(m: glm.mat3) -> glm.mat4 {
-    return {
-        m[0, 0], m[0, 1], m[0, 2], 0,
-        m[1, 0], m[1, 1], m[1, 2], 0,
-        m[2, 0], m[2, 1], m[2, 2], 0,
-        0, 0, 0, 1,
-    }
+transform_id :: proc(id: ID) -> glm.mat4 { return transform_ent(entities[id]) }
+
+transform_ent :: proc(e: Entity) -> glm.mat4 {
+    m := glm.mat4Translate(e.pos) * glm.mat4FromQuat(e.orientation) * glm.mat4Scale(e.scale)
+    return m
 }

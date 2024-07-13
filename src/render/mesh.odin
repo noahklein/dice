@@ -6,6 +6,7 @@ import "../entity"
 import "../assets"
 
 meshes: map[entity.ID]Mesh
+immediate_meshes := make([dynamic]IMesh, 0, 128) // Cleared on every frame.
 
 MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron }
 mesh_renderers: [MeshId]Renderer
@@ -18,11 +19,26 @@ Mesh :: struct {
     hidden: bool,
 }
 
+// Immediate mesh, draws for one frame only.
+IMesh :: struct {
+    using mesh: Mesh,
+    transform: entity.Entity,
+}
+
 create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId = .None) {
     meshes[ent_id] = Mesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
     }
+}
+
+// Immediate-mode, draws once and then forgets.
+draw_mesh :: proc(id: MeshId, transform: entity.Entity, color: [4]f32 = 1, tex: assets.TextureId = .None) {
+    append(&immediate_meshes, IMesh{
+        mesh_id = id,
+        color = color, tex_unit = assets.tex_unit(tex),
+        transform = transform,
+    })
 }
 
 Renderer :: struct {
@@ -136,12 +152,22 @@ renderer_flush :: proc(id: MeshId) {
 }
 
 render_all_meshes :: proc() {
+    defer clear(&immediate_meshes)
+
     for id in MeshId {
         for ent_id, m in meshes do if !m.hidden && m.mesh_id == id {
             renderer_draw(id, Instance{
                 transform = entity.transform(ent_id),
                 color = m.color,
                 ent_id = ent_id,
+                texture = m.tex_unit,
+            })
+        }
+
+        for m in immediate_meshes do if m.mesh_id == id {
+            renderer_draw(id, Instance{
+                transform = entity.transform(m.transform),
+                color = m.color,
                 texture = m.tex_unit,
             })
         }

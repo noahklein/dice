@@ -28,6 +28,15 @@ rotate_vector :: proc(v: glm.vec3, q: glm.quat) -> glm.vec3 {
         2 * s * glm.cross(u, v)
 }
 
+mat3ToMat4 :: #force_inline proc(m: glm.mat3) -> glm.mat4 {
+    return {
+        m[0, 0], m[0, 1], m[0, 2], 0,
+        m[1, 0], m[1, 1], m[1, 2], 0,
+        m[2, 0], m[2, 1], m[2, 2], 0,
+        0, 0, 0, 1,
+    }
+}
+
 mat3FromQuat :: proc(q: glm.quat) -> glm.mat3 {
     w, x, y, z := q.w, q.x, q.y, q.z
 
