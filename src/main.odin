@@ -107,10 +107,15 @@ main :: proc() {
     render.renderer_init(.Octahedron, octahedron_obj)
     defer render.renderer_deinit(.Octahedron)
 
+    // Set up collider shapes using model vertices.
+    physics.collider_vertices(.Box, cube_obj.vertices[:])
+    physics.collider_vertices(.Tetrahedron, tetrahedron_obj.vertices[:])
+    physics.collider_vertices(.Octahedron, octahedron_obj.vertices[:])
+
 
     {
         width, height := glfw.GetWindowSize(window)
-        screen = {f32(width), f32(height)}
+        screen = {f32(width), f32(height)} // @TODO: Window resizing.
     }
 
     // Setup quad renderer.
@@ -127,10 +132,6 @@ main :: proc() {
 
     render.shapes_init()
     mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
-
-    physics.collider_vertices(.Box, cube_obj.vertices[:])
-    physics.collider_vertices(.Tetrahedron, tetrahedron_obj.vertices[:])
-    physics.collider_vertices(.Octahedron, octahedron_obj.vertices[:])
 
     prev_time := glfw.GetTime()
 
