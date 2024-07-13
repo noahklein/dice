@@ -1,17 +1,17 @@
 package render
 
+import glm "core:math/linalg/glsl"
 import gl "vendor:OpenGL"
 import "../entity"
 import "../assets"
 
-meshes: [dynamic]Mesh
+meshes: map[entity.ID]Mesh
 
 MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron }
 mesh_renderers: [MeshId]Renderer
 
 Mesh :: struct {
     mesh_id: MeshId,
-    entity_id: entity.ID,
     color: [4]f32,
     tex_unit: u32,
 
@@ -19,10 +19,10 @@ Mesh :: struct {
 }
 
 create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId = .None) {
-    append(&meshes, Mesh{
-        mesh_id = id, entity_id = ent_id,
+    meshes[ent_id] = Mesh{
+        mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
-    })
+    }
 }
 
 Renderer :: struct {
@@ -33,9 +33,9 @@ Renderer :: struct {
 }
 
 Vertex :: struct {
-    pos: [3]f32,
-    norm: [3]f32,
-    uv: [2]f32,
+    pos:  glm.vec3,
+    norm: glm.vec3,
+    uv:   glm.vec2,
 }
 
 Instance :: struct {
@@ -137,11 +137,11 @@ renderer_flush :: proc(id: MeshId) {
 
 render_all_meshes :: proc() {
     for id in MeshId {
-        for m in meshes do if !m.hidden && m.mesh_id == id {
+        for ent_id, m in meshes do if !m.hidden && m.mesh_id == id {
             renderer_draw(id, Instance{
-                transform = entity.transform(m.entity_id),
+                transform = entity.transform(ent_id),
                 color = m.color,
-                ent_id = m.entity_id,
+                ent_id = ent_id,
                 texture = m.tex_unit,
             })
         }

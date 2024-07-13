@@ -16,6 +16,7 @@ import "physics"
 import "nmath/random"
 import "render"
 import "tween"
+import "worldmap"
 
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
@@ -31,6 +32,9 @@ hovered_ent_id, floor_ent_id: entity.ID
 
 Input :: enum { Fire, Confirm, Stand }
 input: bit_set[Input]
+
+game_state: GameState
+GameState :: enum u8 { WorldMap, Farkle }
 
 main :: proc() {
     if !glfw.Init() {
@@ -124,24 +128,17 @@ main :: proc() {
     render.shapes_init()
     mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
 
-    physics.shapes[.Box].vertex_count = len(cube_obj.vertices)
-    for v, i in cube_obj.vertices {
-        physics.shapes[.Box].vertices[i] = glm.vec3(v)
-    }
-    physics.shapes[.Tetrahedron].vertex_count = len(tetrahedron_obj.vertices)
-    for v, i in tetrahedron_obj.vertices {
-        physics.shapes[.Tetrahedron].vertices[i] = glm.vec3(v)
-    }
-    physics.shapes[.Octahedron].vertex_count = len(octahedron_obj.vertices)
-    for v, i in octahedron_obj.vertices {
-        physics.shapes[.Octahedron].vertices[i] = glm.vec3(v)
-    }
+    physics.collider_vertices(.Box, cube_obj.vertices[:])
+    physics.collider_vertices(.Tetrahedron, tetrahedron_obj.vertices[:])
+    physics.collider_vertices(.Octahedron, octahedron_obj.vertices[:])
 
     prev_time := glfw.GetTime()
 
     init_entities()
     init_camera(1600.0 / 900.0)
     on_mouse_move(&cam, {1600, 900} / 2)
+
+    worldmap.generate()
 
     fps_frames, fps_ms_per_frame: f64
     fps_prev_time := glfw.GetTime()
@@ -228,7 +225,6 @@ main :: proc() {
                 ent := entity.get(d.entity_id)
                 ent.scale += 0.05
                 defer ent.scale -= 0.05
-
 
                 render.renderer_draw(mesh, {
                     transform = entity.transform(d.entity_id),
@@ -433,7 +429,7 @@ shoot_random_box :: proc(cursor, window_size: glm.vec2) {
         color.a = 1
 
         box := entity.new(pos = cam.pos, scale = scale, orientation = random.quat())
-        append(&render.meshes, render.Mesh{entity_id = box, color = color, tex_unit = 1})
+        render.create_mesh(.Cube, box, color, tex = .D6)
         physics.bodies_create(box, .Box, mass = mass, vel = p * ray)
     }
 }
@@ -449,9 +445,8 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
 }
 
 set_floor_color :: proc(color: [4]f32) {
-    for &m in render.meshes do if m.entity_id == floor_ent_id {
-        m.color = color
-    }
+    m, ok := &render.meshes[floor_ent_id]
+    if ok do m.color = color
 }
 
 bit_set_to_string :: proc(bs: bit_set[$T]) -> string {

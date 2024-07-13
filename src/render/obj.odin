@@ -30,6 +30,7 @@ import "core:os"
 import "core:strings"
 import "core:strconv"
 import "core:fmt"
+import glm "core:math/linalg/glsl"
 
 ObjParseError :: enum {
     None,
@@ -44,9 +45,9 @@ ObjParseError :: enum {
 
 Obj :: struct {
 	name:       string,
-	vertices:   [dynamic][3]f32,
-	tex_coords: [dynamic][2]f32,
-	normals:    [dynamic][3]f32,
+	vertices:   [dynamic]glm.vec3,
+	tex_coords: [dynamic]glm.vec2,
+	normals:    [dynamic]glm.vec3,
 	faces:      [dynamic]Face,
 }
 
@@ -102,8 +103,8 @@ load_obj :: proc(path: string) -> (obj: Obj, obj_err: ObjParseError) {
 // Can optionally include a w component, but we ignore it:
 // v 0.123 0.234 0.345 1.0
 @(private)
-parse_vec3 :: proc(tokens: []string) -> ([3]f32, ObjParseError) {
-	v := [3]f32{}
+parse_vec3 :: proc(tokens: []string) -> (glm.vec3, ObjParseError) {
+	v: glm.vec3
 
 	if len(tokens) != 4 && len(tokens) != 5 {
 		return v, .Vec3NotEnoughArgs
@@ -125,8 +126,8 @@ parse_vec3 :: proc(tokens: []string) -> ([3]f32, ObjParseError) {
 
 // vt 0.500 1
 @(private)
-parse_vec2 :: proc(tokens: []string) -> ([2]f32, ObjParseError) {
-	v := [2]f32{}
+parse_vec2 :: proc(tokens: []string) -> (glm.vec2, ObjParseError) {
+	v: glm.vec2
 
 	if len(tokens) != 3 {
 		return v, .Vec2NotEnoughArgs
