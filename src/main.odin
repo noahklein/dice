@@ -21,6 +21,8 @@ import "worldmap"
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
 
+window: glfw.WindowHandle
+
 cursor_hidden: bool
 debug_draw: bool
 physics_paused: bool
@@ -30,7 +32,7 @@ mouse_coords: glm.vec2
 mouse_pick: render.MousePicking
 hovered_ent_id, floor_ent_id: entity.ID
 
-Input :: enum { Fire, Confirm, Stand }
+Input :: enum { Fire, Confirm, Stand, EditorSelect }
 input: bit_set[Input]
 
 game_state: GameState
@@ -44,7 +46,7 @@ main :: proc() {
     defer glfw.Terminate()
     glfw.SetErrorCallback(error_callback)
 
-    window := glfw.CreateWindow(1600, 900, "Dice", nil, nil)
+    window = glfw.CreateWindow(1600, 900, "Dice", nil, nil)
     if window == nil {
         fmt.eprintln("Failed to create window")
         return
@@ -126,7 +128,7 @@ main :: proc() {
     init_camera(1600.0 / 900.0)
     on_mouse_move(&cam, {1600, 900} / 2)
 
-    worldmap.generate()
+    // worldmap.generate()
 
     fps_frames, fps_ms_per_frame: f64
     fps_prev_time := glfw.GetTime()
@@ -161,7 +163,7 @@ main :: proc() {
         }
 
         hovered_ent_id = entity.ID(render.mouse_picking_read(mouse_pick, mouse_coords))
-        if hovered_ent_id <= 0 || hovered_ent_id > 99999 { // @Hack: should clamp to valid IDs.
+        if hovered_ent_id < 0 {
 			hovered_ent_id = -1
 		}
 
@@ -169,6 +171,8 @@ main :: proc() {
         tween.update(dt)
         tween.flux_update(dt)
         camera_update()
+
+        editor_update()
 
         // Draw scene to mouse picking framebuffer.
         gl.BindFramebuffer(gl.FRAMEBUFFER, mouse_pick.fbo)
@@ -196,9 +200,6 @@ main :: proc() {
         for tex in assets.textures {
             gl.BindTextureUnit(tex.unit, tex.id)
         }
-
-        render.draw_mesh(.Cylinder, {1, 1, 1, 1}, .Even, pos = {1, 3, 1}, orientation = 1, scale = 1)
-        render.draw_mesh(.Cone, {1, 1, 1, 1}, .Even, pos = {1, 4, 7}, orientation = 1, scale = 1)
 
         render.render_all_meshes()
 
@@ -307,7 +308,7 @@ init_entities :: proc() {
         die_type: farkle.DieType = rand.choice_enum(farkle.DieType)
         switch die_type {
         case .D4:
-            id := entity.new(scale = 3) // @TODO: scale up tetrahedron model.
+            id := entity.new()
             render.create_mesh(.Tetrahedron, id, {0.4, 1, 0.4, 1}, .D4)
             physics.bodies_create(id, .Tetrahedron, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
@@ -386,6 +387,10 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
 
     if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
         input += {.Fire}
+    }
+
+    if action == glfw.PRESS && button == glfw.MOUSE_BUTTON_MIDDLE {
+        input += {.EditorSelect}
     }
 }
 

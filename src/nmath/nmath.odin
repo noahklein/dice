@@ -2,6 +2,10 @@ package nmath
 
 import glm "core:math/linalg/glsl"
 
+Up      :: glm.vec3{0, 1, 0}
+Right   :: glm.vec3{1, 0, 0}
+Forward :: glm.vec3{0, 0, 1}
+
 nearly_eq :: proc{
     nearly_eq_scalar,
     nearly_eq_vector,
