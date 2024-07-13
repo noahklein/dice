@@ -54,34 +54,30 @@ editor_update :: proc() {
 
     SCALE :: 0.25
 
-    quat_look_at :: proc(a, b: glm.vec3) -> glm.quat {
-        cross := glm.cross(a, b)
-        lenA, lenB := glm.length(a), glm.length(b)
-        w := glm.sqrt(lenA*lenA * lenB*lenB) + glm.dot(a, b)
-        return quaternion(w = w, x = cross.x, y = cross.y, z = cross.z)
-    }
-
-    draw_arrow :: proc(a, b: glm.vec3, color: [4]f32, id: entity.ID) {
-        color := color
-        if hovered_ent_id == id {
-            color = nmath.color_brightness(color, 0.6)
-        }
-        q := quat_look_at({0, 1, 0}, b - a)
-        q = glm.normalize(q)
-
-        pos := (b + a) / 2
-        norm := glm.normalize(b - a)
-        height := glm.length(b - a)
-
-        render.draw_mesh(.Cylinder, ent_id = id, color = color, pos = pos,  scale = {0.1, height, 0.1}, orientation = q)
-        render.draw_mesh(.Cone,     ent_id = id, color = color, pos = pos + norm*(height + SCALE/2), scale = SCALE, orientation = q)
-    }
-
     draw_arrow(ent.pos, ent.pos + {0, ent.scale.y, 0}, nmath.Green, UP_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {ent.scale.x, 0, 0}, nmath.Red, RIGHT_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {0, 0, ent.scale.z}, nmath.Blue, FORWARD_ENT_ID)
 }
 
-transform_arrows :: proc() {
+quat_look_at :: proc(a, b: glm.vec3) -> glm.quat {
+    cross := glm.cross(a, b)
+    lenA, lenB := glm.length(a), glm.length(b)
+    w := glm.sqrt(lenA*lenA * lenB*lenB) + glm.dot(a, b)
+    return quaternion(w = w, x = cross.x, y = cross.y, z = cross.z)
+}
 
+draw_arrow :: proc(a, b: glm.vec3, color: [4]f32, id: entity.ID) {
+    color := color
+    if hovered_ent_id == id {
+        color = nmath.color_brightness(color, 0.6)
+    }
+    q := quat_look_at({0, 1, 0}, b - a)
+    q = glm.normalize(q)
+
+    pos := (b + a) / 2
+    norm := glm.normalize(b - a)
+    height := glm.length(b - a)
+
+    render.draw_mesh(.Cylinder, ent_id = id, color = color, pos = pos,  scale = {0.1, height, 0.1}, orientation = q)
+    render.draw_mesh(.Cone,     ent_id = id, color = color, pos = pos + norm*(height + SCALE/2), scale = SCALE, orientation = q)
 }
