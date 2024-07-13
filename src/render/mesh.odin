@@ -33,11 +33,11 @@ create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: asset
 }
 
 // Immediate-mode, draws once and then forgets.
-draw_mesh :: proc(id: MeshId, transform: entity.Entity, color: [4]f32 = 1, tex: assets.TextureId = .None) {
+draw_mesh :: proc(id: MeshId, color: [4]f32 = 1, tex: assets.TextureId = .None, pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) {
     append(&immediate_meshes, IMesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
-        transform = transform,
+        transform = { pos = pos, orientation = orientation, scale = scale },
     })
 }
 

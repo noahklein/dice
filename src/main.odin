@@ -210,7 +210,7 @@ main :: proc() {
             gl.BindTextureUnit(tex.unit, tex.id)
         }
 
-        render.draw_mesh(.Octahedron, { pos = {1, 2, 1}, orientation = 1, scale = 1}, {1, 1, 1, 1}, .Even)
+        render.draw_mesh(.Octahedron, {1, 1, 1, 1}, .Even, pos = {1, 2, 1}, orientation = 1, scale = 1)
 
         render.render_all_meshes()
 
