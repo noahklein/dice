@@ -8,7 +8,7 @@ import "../assets"
 meshes: map[entity.ID]Mesh
 immediate_meshes := make([dynamic]IMesh, 0, 128) // Cleared on every frame.
 
-MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron }
+MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron, Cone, Cylinder }
 mesh_renderers: [MeshId]Renderer
 
 Mesh :: struct {

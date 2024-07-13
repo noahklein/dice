@@ -71,46 +71,33 @@ main :: proc() {
         return
     }
 
-    cube_obj, cube_err := render.load_obj("assets/cube.obj")
-    if cube_err != nil {
-        fmt.eprintln("Failed to load cube mesh")
-        return
+    // Load models for rendering and physics.
+    paths := [render.MeshId]string{
+        .Cube = "assets/cube.obj",
+        .Tetrahedron = "assets/tetrahedron.obj",
+        .Octahedron = "assets/octahedron.obj",
+        .Cone = "assets/cone.obj",
+        .Cylinder = "assets/cylinder.obj",
+        .Sphere = "assets/sphere.obj",
     }
 
-    sphere_obj, sphere_err := render.load_obj("assets/sphere.obj")
-    if sphere_err != nil {
-        fmt.eprintln("Failed to load sphere mesh")
-        return
+    for id in render.MeshId {
+        path := paths[id]
+        obj, err := render.load_obj(path)
+        if err != nil {
+            fmt.eprintln("Failed to load mesh %q: %v", path, err)
+        }
+
+        render.renderer_init(id, obj)
+
+        // Set up collider shapes using model vertices.
+        #partial switch id {
+        case .Cube:        physics.collider_vertices(.Box, obj.vertices[:])
+        case .Tetrahedron: physics.collider_vertices(.Tetrahedron, obj.vertices[:])
+        case .Octahedron:  physics.collider_vertices(.Octahedron, obj.vertices[:])
+        }
     }
-
-    tetrahedron_obj, tetrahedron_err := render.load_obj("assets/tetrahedron.obj")
-    if tetrahedron_err != nil {
-        fmt.eprintln("Failed to load tetrahedron mesh")
-        return
-    }
-
-    octahedron_obj, octahedron_err := render.load_obj("assets/octahedron.obj")
-    if octahedron_err != nil {
-        fmt.eprintln("Failed to load octahedron mesh")
-        return
-    }
-
-    render.renderer_init(.Cube, cube_obj)
-    defer render.renderer_deinit(.Cube)
-
-    render.renderer_init(.Sphere, sphere_obj)
-    defer render.renderer_deinit(.Sphere)
-
-    render.renderer_init(.Tetrahedron, tetrahedron_obj)
-    defer render.renderer_deinit(.Tetrahedron)
-
-    render.renderer_init(.Octahedron, octahedron_obj)
-    defer render.renderer_deinit(.Octahedron)
-
-    // Set up collider shapes using model vertices.
-    physics.collider_vertices(.Box, cube_obj.vertices[:])
-    physics.collider_vertices(.Tetrahedron, tetrahedron_obj.vertices[:])
-    physics.collider_vertices(.Octahedron, octahedron_obj.vertices[:])
+    defer for id in render.MeshId do render.renderer_deinit(id)
 
 
     {
@@ -210,7 +197,8 @@ main :: proc() {
             gl.BindTextureUnit(tex.unit, tex.id)
         }
 
-        render.draw_mesh(.Octahedron, {1, 1, 1, 1}, .Even, pos = {1, 2, 1}, orientation = 1, scale = 1)
+        render.draw_mesh(.Cylinder, {1, 1, 1, 1}, .Even, pos = {1, 3, 1}, orientation = 1, scale = 1)
+        render.draw_mesh(.Cone, {1, 1, 1, 1}, .Even, pos = {1, 4, 7}, orientation = 1, scale = 1)
 
         render.render_all_meshes()
 
