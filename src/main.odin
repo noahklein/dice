@@ -10,6 +10,7 @@ import gl "vendor:OpenGL"
 import "vendor:glfw"
 
 import "assets"
+import "cards"
 import "entity"
 import "farkle"
 import "physics"
@@ -199,6 +200,22 @@ main :: proc() {
             }
         }
 
+        @(static) wait_for_card_animation: f32
+        if wait_for_card_animation > 0 {
+            wait_for_card_animation -= dt
+        }
+
+        if wait_for_card_animation <= 0 {
+            if .Confirm in input {
+                wait_for_card_animation = cards.draw()
+            }
+            if .Stand in input {
+                for card in cards.drawn_cards do if hovered_ent_id == card.ent_id {
+                    wait_for_card_animation = cards.discard(card.ent_id)
+                }
+            }
+        }
+
         drag_die()
         update_farkle(dt)
         tween.update(dt)
@@ -379,6 +396,8 @@ init_entities :: proc() {
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         }
     }
+
+    cards.init()
 }
 
 error_callback :: proc "c" (code: i32, desc: cstring) {
