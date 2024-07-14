@@ -344,7 +344,7 @@ init_entities :: proc() {
     physics.bodies_create(desk, .Box)
 
     desk_ent := entity.get(desk)
-    draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0, 1, 0.8})
+    draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0.6, 1, 0})
     render.create_mesh(.Cube, draggable_die_id, 1, .D6)
     physics.bodies_create(draggable_die_id, .Box, mass = 1)
 
