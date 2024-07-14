@@ -280,6 +280,8 @@ main :: proc() {
 }
 
 init_entities :: proc() {
+    entity.new(pos = 1e6) // Reserve 0th index so that EntityID zero value is useful.
+
     FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 50
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
