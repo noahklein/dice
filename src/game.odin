@@ -215,7 +215,7 @@ animate_dice_done_rolling :: proc() -> f32 {
         delay := held_count * DUR / 4
         x := 3.2 * f32((int(held_count) % 5) - 2)
         z := 3.2 * f32((int(held_count) / 5) - 2)
-        tween.to(d.entity_id, tween.Pos{{x, p.y + 30, z}}, DUR, held_count * DUR / 4, .Circular_In)
+        tween.to(d.entity_id, tween.Pos{{x, p.y + 30, z}}, DUR, delay, .Circular_In)
         tween.to(d.entity_id, tween.Pos{{x, 1, z}}, 2*DUR, delay + DUR, .Bounce_Out)
 
         held_count += 1
