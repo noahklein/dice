@@ -52,8 +52,6 @@ editor_update :: proc() {
         ent.pos += diff * editor_dragging * drag_damping
     }
 
-    SCALE :: 0.25
-
     draw_arrow(ent.pos, ent.pos + {0, ent.scale.y, 0}, nmath.Green, UP_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {ent.scale.x, 0, 0}, nmath.Red, RIGHT_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {0, 0, ent.scale.z}, nmath.Blue, FORWARD_ENT_ID)
@@ -67,6 +65,7 @@ quat_look_at :: proc(a, b: glm.vec3) -> glm.quat {
 }
 
 draw_arrow :: proc(a, b: glm.vec3, color: [4]f32, id: entity.ID) {
+    SCALE :: 0.25
     color := color
     if hovered_ent_id == id {
         color = nmath.color_brightness(color, 0.6)
