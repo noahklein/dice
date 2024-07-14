@@ -7,6 +7,7 @@ import "vendor:glfw"
 import "entity"
 import "nmath"
 import "render"
+import "window"
 
 UP_ENT_ID      :: 1e6
 RIGHT_ENT_ID   :: UP_ENT_ID + 1
@@ -19,7 +20,7 @@ editor_prev_mouse: glm.vec2
 editor_update :: proc() {
     when !ODIN_DEBUG do return
 
-    damp_enabled := glfw.GetKey(window, glfw.KEY_LEFT_ALT) == glfw.PRESS
+    damp_enabled := window.key_down(.LeftAlt)
 
     if .EditorSelect in input {
         editor_selected_id = -1
@@ -31,11 +32,10 @@ editor_update :: proc() {
     if editor_selected_id < 0 do return
     ent := entity.get(editor_selected_id)
 
-    left_mouse_btn := glfw.GetMouseButton(window, glfw.MOUSE_BUTTON_LEFT)
-    if editor_dragging != 0 && left_mouse_btn == glfw.RELEASE {
+    if editor_dragging != 0 && window.mousebtn_up(.Left) {
         editor_dragging = 0
     }
-    if editor_dragging == 0 && left_mouse_btn == glfw.PRESS {
+    if editor_dragging == 0 && window.mousebtn_down(.Left){
         editor_prev_mouse = mouse_coords
         switch hovered_ent_id {
             case UP_ENT_ID:      editor_dragging = nmath.Up

@@ -13,24 +13,25 @@ import "assets"
 import "entity"
 import "farkle"
 import "physics"
+import "nmath"
 import "nmath/random"
 import "render"
 import "tween"
+import "window"
 import "worldmap"
 
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
 
-window: glfw.WindowHandle
 
 cursor_hidden: bool
 debug_draw: bool
 physics_paused: bool
 
 screen: glm.vec2
-mouse_coords: glm.vec2
+mouse_coords, prev_mouse_coords, mouse_diff: glm.vec2
 mouse_pick: render.MousePicking
-hovered_ent_id, floor_ent_id: entity.ID
+hovered_ent_id, floor_ent_id, draggable_die_id: entity.ID
 
 Input :: enum { Fire, Confirm, Stand, EditorSelect }
 input: bit_set[Input]
@@ -46,17 +47,17 @@ main :: proc() {
     defer glfw.Terminate()
     glfw.SetErrorCallback(error_callback)
 
-    window = glfw.CreateWindow(1600, 900, "Dice", nil, nil)
-    if window == nil {
+    window.id = glfw.CreateWindow(1600, 900, "Dice", nil, nil)
+    if window.id == nil {
         fmt.eprintln("Failed to create window")
         return
     }
-    defer glfw.DestroyWindow(window)
-    glfw.MakeContextCurrent(window)
+    defer glfw.DestroyWindow(window.id)
+    glfw.MakeContextCurrent(window.id)
 
-    glfw.SetKeyCallback(window, key_callback)
-    glfw.SetMouseButtonCallback(window, mouse_button_callback)
-    glfw.SetCursorPosCallback(window, mouse_callback)
+    glfw.SetKeyCallback(window.id, key_callback)
+    glfw.SetMouseButtonCallback(window.id, mouse_button_callback)
+    glfw.SetCursorPosCallback(window.id, mouse_callback)
 
     gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
     gl.Enable(gl.BLEND)
@@ -103,7 +104,7 @@ main :: proc() {
 
 
     {
-        width, height := glfw.GetWindowSize(window)
+        width, height := glfw.GetWindowSize(window.id)
         screen = {f32(width), f32(height)} // @TODO: Window resizing.
     }
 
@@ -132,9 +133,9 @@ main :: proc() {
 
     fps_frames, fps_ms_per_frame: f64
     fps_prev_time := glfw.GetTime()
-    for !glfw.WindowShouldClose(window) {
+    for !glfw.WindowShouldClose(window.id) {
         defer {
-            glfw.SwapBuffers(window)
+            glfw.SwapBuffers(window.id)
             render.watch(&shader)
             render.watch(&quad_shader)
             render.watch(&render.text_render.shader)
@@ -148,7 +149,7 @@ main :: proc() {
         now := glfw.GetTime()
         if now - fps_prev_time >= 1 {
             fps_ms_per_frame = 1000.0 / fps_frames
-            // fmt.printfln("%.3f ms/frame", 1000 / fps_frames)
+            if fps_ms_per_frame < 9.9 do fmt.eprintfln("Slow: %.3f ms/frame", fps_ms_per_frame)
             fps_frames = 0
             fps_prev_time = now
         }
@@ -157,7 +158,7 @@ main :: proc() {
         prev_time = now
 
 
-        handle_input(window, dt)
+        handle_input(window.id, dt)
         if !physics_paused {
             physics.bodies_update(TIMESCALE * dt)
         }
@@ -167,6 +168,38 @@ main :: proc() {
 			hovered_ent_id = -1
 		}
 
+        drag_die :: proc() {
+            @(static) dragging_die: bool
+            die := entity.get(draggable_die_id)
+
+            if die.pos.y < -10 {
+                die.pos = {0, 3, 12}
+            }
+
+            DIST :: 10
+
+
+            if dragging_die && window.mousebtn_up(.Left) {
+                dragging_die = false
+                for &b in physics.bodies do if b.entity_id == draggable_die_id {
+                    target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, screen)
+                    b.vel = target - entity.get(draggable_die_id).pos
+                    b.vel *= 5
+                }
+                return
+            }
+
+            if hovered_ent_id == draggable_die_id && .Fire in input {
+                dragging_die = true
+                input -= {.Fire}
+            }
+            if dragging_die {
+                target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, screen)
+                die.pos = glm.lerp(die.pos, target, 0.2)
+            }
+        }
+
+        drag_die()
         update_farkle(dt)
         tween.update(dt)
         tween.flux_update(dt)
@@ -305,6 +338,16 @@ init_entities :: proc() {
     create_wall({-FLOOR_SIZE, HALF_HEIGHT, 0}, {1, HALF_HEIGHT, FLOOR_SIZE})
     create_wall({ FLOOR_SIZE, HALF_HEIGHT, 0}, {1, HALF_HEIGHT, FLOOR_SIZE})
 
+    floor_ent := entity.get(floor_ent_id)
+    desk := entity.new(pos = floor_ent.pos - {0, 2, 0}, scale = floor_ent.scale + {16, 0, 9}) // @TODO: hardcoded for 16:9 ratio
+    render.create_mesh(.Cube, desk, nmath.Brown)
+    physics.bodies_create(desk, .Box)
+
+    desk_ent := entity.get(desk)
+    draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0, 1, 0.8})
+    render.create_mesh(.Cube, draggable_die_id, 1, .D6)
+    physics.bodies_create(draggable_die_id, .Box, mass = 1)
+
     // Create dice.
     for _, i in farkle.round.dice {
         die_type: farkle.DieType = rand.choice_enum(farkle.DieType)
@@ -370,8 +413,10 @@ mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
         return
     }
 
+    prev_mouse_coords = mouse_coords
     mouse_coords.x = f32(xpos)
     mouse_coords.y = screen.y - f32(ypos)
+    mouse_diff = mouse_coords - prev_mouse_coords
 }
 
 mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i32) {
