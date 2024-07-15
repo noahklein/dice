@@ -24,7 +24,16 @@ Card :: struct {
 }
 
 CardType :: enum {
+    None,
     Inc, Dec, Flip,
+}
+
+// TODO: make card textures and delete this.
+COLORS := [CardType]nmath.Color{
+    .None = 0,
+    .Inc = nmath.Blue,
+    .Dec = nmath.Red,
+    .Flip = nmath.Green,
 }
 
 init :: proc() {
@@ -40,7 +49,7 @@ init :: proc() {
         id := entity.new(pos = spawn, scale = SCALE, orientation = rot)
 
         append(&draw_pile, Card{ id, card_type })
-        render.create_mesh(.Cube, id)
+        render.create_mesh(.Cube, id, COLORS[card_type])
     }
 }
 
@@ -91,4 +100,21 @@ discard :: proc(id: entity.ID) -> f32 {
     }
 
     return DUR
+}
+
+use :: proc(id: entity.ID) {
+    type: CardType
+    for card in drawn_cards do if id == card.ent_id {
+        type = card.type
+        break
+    }
+    switch type {
+        case .None: return
+        case .Dec, .Inc, .Flip:
+            select_die(type)
+    }
+}
+
+select_die :: proc(type: CardType) {
+    // TODO: wait for player to selct a die and apply card effect.
 }
