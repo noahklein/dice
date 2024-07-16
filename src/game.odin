@@ -262,20 +262,22 @@ apply_card_effect :: proc(card_type: cards.CardType, die: farkle.Die) {
 
     even_or_odd := die.type == .Even || die.type == .Odd
 
+    DUR :: 0.3
+
     switch card_type {
         case .None:
             return
         case .Inc:
             inc := 2 if even_or_odd else 1
             rot := farkle.rotate_show_pip(die, pip + inc)
-            tween.to(die.entity_id, tween.Orientation{rot * orientation}, 0.3)
+            tween.to(die.entity_id, tween.Orientation{rot}, DUR)
         case .Dec:
             dec := 2 if even_or_odd else 1
             rot := farkle.rotate_show_pip(die, pip - dec)
-            tween.to(die.entity_id, tween.Orientation{rot}, 0.3)
+            tween.to(die.entity_id, tween.Orientation{rot}, DUR)
         case .Flip:
             opposite := 1 + farkle.SIDES[die.type] - pip
             rot := farkle.rotate_show_pip(die, opposite)
-            tween.to(die.entity_id, tween.Orientation{rot}, 0.3)
+            tween.to(die.entity_id, tween.Orientation{rot}, DUR)
     }
 }
