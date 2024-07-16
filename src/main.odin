@@ -361,7 +361,7 @@ init_entities :: proc() {
     physics.bodies_create(desk, .Box)
 
     desk_ent := entity.get(desk)
-    draggable_orientation := nmath.quat_from_vecs(nmath.Up, farkle.NORMALS[.D6][6 - 1])
+    draggable_orientation := farkle.rotate_show_pip(.D6, 6)
     draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0.6, 1, 0}, orientation = draggable_orientation)
     render.create_mesh(.Cube, draggable_die_id, 1, .D6)
     physics.bodies_create(draggable_die_id, .Box, mass = 1)

@@ -215,12 +215,22 @@ throw_dice :: proc() {
     physics_paused = false
 }
 
+// Sorts dice by pip and animates them into a grid.
 animate_dice_done_rolling :: proc() -> f32 {
     DUR :: 0.75
     held_count: f32
     dice := farkle.round.dice[:]
-    slice.sort_by_key(dice, proc(d: farkle.Die) -> f32 {
+
+    // Static so it can be accessed from sorting function below.
+    @(static) pips: map[entity.ID]int
+    pips = make(map[entity.ID]int, len(dice), context.temp_allocator)
+    for d in farkle.round.dice {
         pip := farkle.die_facing_up(d.type, entity.get(d.entity_id).orientation)
+        pips[d.entity_id] = pip
+    }
+
+    slice.sort_by_key(dice, proc(d: farkle.Die) -> f32 {
+        pip := pips[d.entity_id]
         return f32(pip) + 0.1 * f32(d.type)
     })
 
@@ -233,6 +243,9 @@ animate_dice_done_rolling :: proc() -> f32 {
         z := 3.2 * f32((int(held_count) / 5) - 2)
         tween.to(d.entity_id, tween.Pos{{x, p.y + 30, z}}, DUR, delay, .Circular_In)
         tween.to(d.entity_id, tween.Pos{{x, 1, z}}, 2*DUR, delay + DUR, .Bounce_Out)
+
+        rot := farkle.rotate_show_pip(d.type, pips[d.entity_id])
+        tween.to(d.entity_id, tween.Orientation{rot}, DUR / 100, delay + 0.99*DUR)
 
         held_count += 1
     }
@@ -269,15 +282,15 @@ apply_card_effect :: proc(card_type: cards.CardType, die: farkle.Die) {
             return
         case .Inc:
             inc := 2 if even_or_odd else 1
-            rot := farkle.rotate_show_pip(die, pip + inc)
+            rot := farkle.rotate_show_pip(die.type, pip + inc)
             tween.to(die.entity_id, tween.Orientation{rot}, DUR)
         case .Dec:
             dec := 2 if even_or_odd else 1
-            rot := farkle.rotate_show_pip(die, pip - dec)
+            rot := farkle.rotate_show_pip(die.type, pip - dec)
             tween.to(die.entity_id, tween.Orientation{rot}, DUR)
         case .Flip:
             opposite := 1 + farkle.SIDES[die.type] - pip
-            rot := farkle.rotate_show_pip(die, opposite)
+            rot := farkle.rotate_show_pip(die.type, opposite)
             tween.to(die.entity_id, tween.Orientation{rot}, DUR)
     }
 }

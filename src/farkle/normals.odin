@@ -69,13 +69,13 @@ die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
 
 
 // Rotate die so that given pip is showing.
-rotate_show_pip :: proc(die: Die, pip: int) -> glm.quat {
-    sides := SIDES[die.type]
+rotate_show_pip :: proc(type: DieType, pip: int) -> glm.quat {
+    sides := SIDES[type]
     target_pip := pip
          if pip == 0    do target_pip = sides
     else if pip < 0     do target_pip = sides + (pip % sides)
     else if pip > sides do target_pip = pip % sides
 
-    norm := NORMALS[die.type][target_pip - 1]
+    norm := NORMALS[type][target_pip - 1]
     return nmath.quat_from_vecs(nmath.Up, norm)
 }
