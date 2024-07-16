@@ -59,6 +59,8 @@ draw :: proc() -> f32 {
     if len(drawn_cards) + 1 > MAX_DRAWN_CARDS do return 0
     if len(draw_pile) == 0 do return 0
 
+    DUR :: 0.3
+
     for card in drawn_cards {
         ent := entity.get(card.ent_id)
         tween.to(card.ent_id, tween.Pos{ent.pos + 3*nmath.Forward}, DUR / 2)
@@ -68,7 +70,6 @@ draw :: proc() -> f32 {
 
     append(&drawn_cards, card)
 
-    DUR :: 0.6
     ent := entity.get(card.ent_id)
     rot := ent.orientation * glm.quatAxisAngle(nmath.Forward, -glm.PI)
     tween.to(card.ent_id, tween.Orientation{rot}, DUR)
@@ -79,7 +80,7 @@ draw :: proc() -> f32 {
 }
 
 discard :: proc(id: entity.ID) -> f32 {
-    DUR :: 0.6
+    DUR :: 0.3
     index: int
     for card, i in drawn_cards do if id == card.ent_id {
         index = i
