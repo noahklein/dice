@@ -123,9 +123,9 @@ update_farkle :: proc(dt: f32) {
                 holding_hands, holding_score = farkle.score_hand(farkle.count_dice_pips(held_only = true))
             }
         }
-        if .Fire in input do for card in cards.drawn_cards {
+        if .Fire in input && cards.actions > 0 do for card in cards.drawn_cards {
             if card.ent_id == hovered_ent_id {
-                cards.use(card.ent_id)
+                cards.use(card)
                 farkle_state = .SelectDieForCard
                 return
             }
@@ -173,9 +173,20 @@ update_farkle :: proc(dt: f32) {
             farkle_state = .ReadyToThrow
         }
     case .SelectDieForCard:
+        if .Cancel in input {
+            farkle_state = .HoldingDice
+            cards.cancel()
+        }
         if .Fire in input {
+            for c in cards.drawn_cards do if c.ent_id == hovered_ent_id { // Switch active card.
+                cards.cancel()
+                cards.use(c)
+                return
+            }
             for d in farkle.round.dice do if d.entity_id == hovered_ent_id {
-                apply_card_effect(cards.selecting_card, d)
+                apply_card_effect(cards.active.type, d)
+                farkle_state = .HoldingDice
+                break
             }
         }
     }
@@ -183,6 +194,8 @@ update_farkle :: proc(dt: f32) {
 
 throw_dice :: proc() {
     if farkle_state != .ReadyToThrow do return
+
+    cards.draw()
 
     CAM_DUR :: 500 * time.Millisecond
     tween.flux_vec3_to(&cam.pos, {0, 20, 20}, dur = CAM_DUR)
@@ -293,4 +306,7 @@ apply_card_effect :: proc(card_type: cards.CardType, die: farkle.Die) {
             rot := farkle.rotate_show_pip(die.type, opposite)
             tween.to(die.entity_id, tween.Orientation{rot}, DUR)
     }
+
+    cards.actions -= 1
+    cards.discard(cards.active.ent_id)
 }

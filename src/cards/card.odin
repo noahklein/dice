@@ -14,11 +14,14 @@ deck: [dynamic]CardType = {
     .Inc, .Dec, .Flip, .Inc, .Dec,
 }
 draw_pile, discard_pile, drawn_cards: [dynamic]Card
-selecting_card: CardType
+
+active: Card
 actions: int // Number of cards you can play.
 
 DECK_POS    :: glm.vec3{-14, -2, -8}
 DISCARD_POS := DECK_POS + 4*3*nmath.Forward
+FACE_DOWN := glm.quatAxisAngle(nmath.Up, glm.TAU / 4)
+FACE_UP   := FACE_DOWN * glm.quatAxisAngle(nmath.Forward, -glm.PI)
 
 Card :: struct {
     ent_id: entity.ID,
@@ -47,8 +50,7 @@ init :: proc() {
 
     for card_type, i in deck {
         spawn := DECK_POS + f32(i) * SCALE.y * nmath.Up
-        rot := glm.quatAxisAngle(nmath.Up, glm.TAU / 4)
-        id := entity.new(pos = spawn, scale = SCALE, orientation = rot)
+        id := entity.new(pos = spawn, scale = SCALE, orientation = FACE_DOWN)
 
         append(&draw_pile, Card{ id, card_type })
         render.create_mesh(.Cube, id, COLORS[card_type])
@@ -71,8 +73,7 @@ draw :: proc() -> f32 {
     append(&drawn_cards, card)
 
     ent := entity.get(card.ent_id)
-    rot := ent.orientation * glm.quatAxisAngle(nmath.Forward, -glm.PI)
-    tween.to(card.ent_id, tween.Orientation{rot}, DUR)
+    tween.to(card.ent_id, tween.Orientation{FACE_UP}, DUR)
     tween.to(card.ent_id, tween.Pos{ent.pos + {0, 2, 3}}, DUR / 2)
     tween.to(card.ent_id, tween.Pos{ent.pos + {0, 0, 3}}, DUR / 2, DUR / 2)
 
@@ -89,8 +90,7 @@ discard :: proc(id: entity.ID) -> f32 {
     }
 
     discarded := entity.get(id)
-    rot := discarded.orientation * glm.quatAxisAngle(nmath.Forward, -glm.PI)
-    tween.to(id, tween.Orientation{rot}, DUR / 2)
+    tween.to(id, tween.Orientation{FACE_DOWN}, DUR / 2)
 
     tween.to(id, tween.Pos{discarded.pos + {0, 2, 3}}, DUR / 2)
 
@@ -105,20 +105,36 @@ discard :: proc(id: entity.ID) -> f32 {
     return DUR
 }
 
-use :: proc(id: entity.ID) {
+use :: proc(card: Card) {
     if actions <= 0 do return
-    actions -= 1
 
-    defer discard(id)
+    active = card
 
-    type: CardType
-    for card in drawn_cards do if id == card.ent_id {
-        type = card.type
-        break
-    }
-    switch type {
+    switch card.type {
         case .None: return
         case .Dec, .Inc, .Flip:
-            selecting_card = type
+            animate_card_using(card.ent_id)
     }
+}
+
+cancel :: proc() {
+    animate_card_cancel(active.ent_id)
+    active = {}
+}
+
+CARD_USING_TRANSLATION :: glm.vec3{0, 1, 0}
+CARD_USING_ROTATION := glm.quatAxisAngle(nmath.Forward, glm.TAU / 20)
+
+animate_card_using :: proc(id: entity.ID) {
+    DUR :: 0.2
+    e := entity.get(id)
+    tween.to(id, tween.Pos{e.pos + CARD_USING_TRANSLATION}, DUR)
+    tween.to(id, tween.Orientation{e.orientation * CARD_USING_ROTATION}, DUR)
+}
+
+animate_card_cancel :: proc(id: entity.ID) {
+    DUR :: 0.2
+    e := entity.get(id)
+    tween.to(id, tween.Pos{e.pos - CARD_USING_TRANSLATION}, DUR)
+    tween.to(id, tween.Orientation{e.orientation * conj(CARD_USING_ROTATION)}, DUR)
 }

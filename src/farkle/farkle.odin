@@ -1,16 +1,14 @@
 package farkle
 
 import "core:fmt"
-import glm "core:math/linalg/glsl"
 import "../entity"
-import "../nmath"
 
 round: Round
 
 Round :: struct {
     turns_remaining: int,
     score, total_score: int,
-    dice: [15]Die,
+    dice: [7]Die,
 }
 
 DieType :: enum { D4, D6, Even, Odd, D8 }

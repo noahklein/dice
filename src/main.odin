@@ -24,7 +24,6 @@ import "worldmap"
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 5
 
-
 cursor_hidden: bool
 debug_draw: bool
 physics_paused: bool
@@ -34,7 +33,7 @@ mouse_coords, prev_mouse_coords, mouse_diff: glm.vec2
 mouse_pick: render.MousePicking
 hovered_ent_id, floor_ent_id, draggable_die_id: entity.ID
 
-Input :: enum { Fire, Confirm, Stand, EditorSelect }
+Input :: enum { Fire, Confirm, Cancel, Stand, EditorSelect }
 input: bit_set[Input]
 
 game_state: GameState
@@ -208,11 +207,6 @@ main :: proc() {
         if wait_for_card_animation <= 0 {
             if .Confirm in input {
                 wait_for_card_animation = cards.draw()
-            }
-            if .Stand in input {
-                for card in cards.drawn_cards do if hovered_ent_id == card.ent_id {
-                    wait_for_card_animation = cards.discard(card.ent_id)
-                }
             }
         }
 
@@ -419,6 +413,14 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
             physics_paused = false
             farkle_state = .ReadyToThrow
             throw_dice()
+        case glfw.KEY_C:
+            cursor_hidden = !cursor_hidden
+            if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
+            init_mouse = false
+
+            cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
+            glfw.SetInputMode(window, glfw.CURSOR, cursor_status)
+            glfw.SetCursorPos(window, f64(0.5 * screen.x), f64(0.5 * screen.y))
 
         case glfw.KEY_R: input += {.Confirm}
         case glfw.KEY_F: input += {.Stand}
@@ -443,21 +445,13 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
     context = runtime.default_context()
 
     if button == glfw.MOUSE_BUTTON_RIGHT && action == glfw.PRESS {
-        cursor_hidden = !cursor_hidden
-        if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
-        init_mouse = false
 
-        cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
-        glfw.SetInputMode(w, glfw.CURSOR, cursor_status)
-        glfw.SetCursorPos(w, f64(0.5 * screen.x), f64(0.5 * screen.y))
     }
 
-    if glfw.GetMouseButton(w, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS {
-        input += {.Fire}
-    }
-
-    if action == glfw.PRESS && button == glfw.MOUSE_BUTTON_MIDDLE {
-        input += {.EditorSelect}
+    if action == glfw.PRESS do switch button {
+        case glfw.MOUSE_BUTTON_LEFT:   input += {.Fire}
+        case glfw.MOUSE_BUTTON_RIGHT:  input += {.Cancel}
+        case glfw.MOUSE_BUTTON_MIDDLE: input += {.EditorSelect}
     }
 }
 
