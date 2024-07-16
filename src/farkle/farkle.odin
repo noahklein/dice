@@ -32,6 +32,14 @@ HandType :: enum {
     TooManyOfAKind,
 }
 
+SIDES := [DieType]int{
+    .D4   = 4,
+    .D6   = 6,
+    .Even = 6,
+    .Odd  = 6,
+    .D8   = 8,
+}
+
 hand_type_of_a_kind :: #force_inline proc(count: int) -> HandType {
     switch count {
         case 3: return .ThreeOfAKind
@@ -155,80 +163,4 @@ score_hand :: proc(pip_counts: map[int]int) -> (hands: bit_set[HandType], score:
     }
 
     return
-}
-
-die_facing_up :: proc(type: DieType, orientation: glm.quat) -> int {
-    switch type {
-        case .D4: return die_facing_up_d4(orientation)
-        case .D6: return die_facing_up_d6(orientation)
-        case .D8: return die_facing_up_d8(orientation)
-        case .Even:
-            p := die_facing_up_d6(orientation)
-            return p if p % 2 == 0 else 7 - p
-        case .Odd:
-            p := die_facing_up_d6(orientation)
-            return p if p % 2 != 0 else 7 - p
-    }
-
-    fmt.eprintln("Unrecognized die type:", type)
-    return 0
-}
-
-die_facing_up_d4 :: proc(orientation: glm.quat) -> int {
-    UP :: glm.vec3{0, 1, 0}
-    T  :: 0.75 // Threshold for cosine similarity.
-
-    dir := nmath.rotate_vector({0, 1, 0}, orientation)
-    if glm.dot(dir, UP) > T do return 1
-
-    dir = nmath.rotate_vector({-0.471, -0.333, 0.817}, orientation)
-    if glm.dot(dir, UP) > T do return 2
-
-    dir = nmath.rotate_vector({-0.471, -0.333, -0.816}, orientation)
-    if glm.dot(dir, UP) > T do return 3
-
-    dir = nmath.rotate_vector({0.942, -0.333, 0}, orientation)
-    if glm.dot(dir, UP) > T do return 4
-
-    return 0
-}
-
-die_facing_up_d6 :: proc(orientation: glm.quat) -> int {
-    UP :: glm.vec3{0, 1, 0}
-    T  :: 0.75 // Threshold for cosine similarity.
-
-    FACE_NORMALS :: [?]glm.vec3{
-        {-1,  0, 0},
-        { 0, -1, 0},
-        { 0,  0, 1},
-    }
-
-    for n, pip in FACE_NORMALS {
-        dir := nmath.rotate_vector(n, orientation)
-        if glm.dot( dir, UP) > T do return pip + 1
-        if glm.dot(-dir, UP) > T do return 7 - (pip+1)
-    }
-
-    return 0 // No valid side.
-}
-
-die_facing_up_d8 :: proc(orientation: glm.quat) -> int {
-    UP :: glm.vec3{0, 1, 0}
-    T :: 0.75
-
-    X :: glm.SQRT_THREE / 3
-    FACE_NORMALS :: [?]glm.vec3{
-        { X, -X,  X},
-        {-X,  X,  X},
-        {-X, -X,  X},
-        { X,  X,  X},
-    }
-
-    for n, pip in FACE_NORMALS {
-        dir := nmath.rotate_vector(n, orientation)
-        if glm.dot( dir, UP) > T do return pip + 1
-        if glm.dot(-dir, UP) > T do return 9 - (pip+1)
-    }
-
-    return 0
 }

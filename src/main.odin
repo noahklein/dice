@@ -300,7 +300,7 @@ main :: proc() {
 
             for d in farkle.round.dice do if d.entity_id == hovered_ent_id {
                 pip := farkle.die_facing_up(d.type, entity.get(d.entity_id).orientation)
-                render.draw_textf({20, 600}, "Hovered die pip: %v", pip)
+                render.draw_textf({20, 600}, "Hovered die pip: %v, %v", d.type, pip)
             }
 
             // The poor man's crosshair.
@@ -361,7 +361,8 @@ init_entities :: proc() {
     physics.bodies_create(desk, .Box)
 
     desk_ent := entity.get(desk)
-    draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0.6, 1, 0})
+    draggable_orientation := nmath.quat_from_vecs(nmath.Up, farkle.NORMALS[.D6][6 - 1])
+    draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0.6, 1, 0}, orientation = draggable_orientation)
     render.create_mesh(.Cube, draggable_die_id, 1, .D6)
     physics.bodies_create(draggable_die_id, .Box, mass = 1)
 

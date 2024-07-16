@@ -14,6 +14,8 @@ deck: [dynamic]CardType = {
     .Inc, .Dec, .Flip, .Inc, .Dec,
 }
 draw_pile, discard_pile, drawn_cards: [dynamic]Card
+selecting_card: CardType
+actions: int // Number of cards you can play.
 
 DECK_POS    :: glm.vec3{-14, -2, -8}
 DISCARD_POS := DECK_POS + 4*3*nmath.Forward
@@ -103,6 +105,11 @@ discard :: proc(id: entity.ID) -> f32 {
 }
 
 use :: proc(id: entity.ID) {
+    if actions <= 0 do return
+    actions -= 1
+
+    defer discard(id)
+
     type: CardType
     for card in drawn_cards do if id == card.ent_id {
         type = card.type
@@ -111,10 +118,6 @@ use :: proc(id: entity.ID) {
     switch type {
         case .None: return
         case .Dec, .Inc, .Flip:
-            select_die(type)
+            selecting_card = type
     }
-}
-
-select_die :: proc(type: CardType) {
-    // TODO: wait for player to selct a die and apply card effect.
 }

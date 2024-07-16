@@ -4,6 +4,7 @@ import glm "core:math/linalg/glsl"
 import "core:slice"
 import "core:time"
 
+import "cards"
 import "entity"
 import "farkle"
 import "nmath"
@@ -33,6 +34,7 @@ FarkleState :: enum {
     RoundStart,
     ReadyToThrow,
     HoldingDice,
+    SelectDieForCard,
     Rolling,
 }
 
@@ -109,6 +111,7 @@ update_farkle :: proc(dt: f32) {
         set_floor_color({0, 1, 0.4, 1})
         farkle_state = .HoldingDice
         physics_paused = true
+        cards.actions = 1
         wait_for_animation_time = animate_dice_done_rolling()
 
     case .HoldingDice:
@@ -118,6 +121,13 @@ update_farkle :: proc(dt: f32) {
                 d.held = !d.held
 
                 holding_hands, holding_score = farkle.score_hand(farkle.count_dice_pips(held_only = true))
+            }
+        }
+        if .Fire in input do for card in cards.drawn_cards {
+            if card.ent_id == hovered_ent_id {
+                cards.use(card.ent_id)
+                farkle_state = .SelectDieForCard
+                return
             }
         }
 
@@ -161,6 +171,12 @@ update_farkle :: proc(dt: f32) {
             }
 
             farkle_state = .ReadyToThrow
+        }
+    case .SelectDieForCard:
+        if .Fire in input {
+            for d in farkle.round.dice do if d.entity_id == hovered_ent_id {
+                apply_card_effect(cards.selecting_card, d)
+            }
         }
     }
 }
@@ -238,4 +254,28 @@ animate_dice_out :: proc(held_only := false) -> f32 {
     }
 
     return delay + 0.5
+}
+
+apply_card_effect :: proc(card_type: cards.CardType, die: farkle.Die) {
+    orientation := entity.get(die.entity_id).orientation
+    pip := farkle.die_facing_up(die.type, orientation)
+
+    even_or_odd := die.type == .Even || die.type == .Odd
+
+    switch card_type {
+        case .None:
+            return
+        case .Inc:
+            inc := 2 if even_or_odd else 1
+            rot := farkle.rotate_show_pip(die, pip + inc)
+            tween.to(die.entity_id, tween.Orientation{rot * orientation}, 0.3)
+        case .Dec:
+            dec := 2 if even_or_odd else 1
+            rot := farkle.rotate_show_pip(die, pip - dec)
+            tween.to(die.entity_id, tween.Orientation{rot}, 0.3)
+        case .Flip:
+            opposite := 1 + farkle.SIDES[die.type] - pip
+            rot := farkle.rotate_show_pip(die, opposite)
+            tween.to(die.entity_id, tween.Orientation{rot}, 0.3)
+    }
 }

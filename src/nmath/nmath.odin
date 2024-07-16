@@ -22,14 +22,25 @@ nearly_eq_vector :: proc(a, b: $A/[$N]f32, precision: f32 = 0.0001) -> bool #no_
     return true
 }
 
-// https://gamedev.stackexchange.com/a/50545
-rotate_vector :: proc(v: glm.vec3, q: glm.quat) -> glm.vec3 {
-    u := glm.vec3{imag(q), jmag(q), kmag(q)}
-    s := real(q)
+// Quaternion representing the smallest rotation from directions a to b.
+quat_from_vecs :: proc(a, b: glm.vec3) -> glm.quat {
+    a, b := glm.normalize(a), glm.normalize(b)
+    dot := glm.dot(a, b)
 
-    return  2 * u * glm.dot(u, v) +
-        v * (s*s - glm.dot(u, u)) +
-        2 * s * glm.cross(u, v)
+    if nearly_eq(dot, 1) { // Vectors point in the same direction.
+        return glm.quatAxisAngle(Up, 0)
+    }
+    if nearly_eq(dot, -1) { // Vectors point in opposite directions.
+        axis := glm.cross(Right, a)
+        if nearly_eq(glm.length(axis), 0) do axis = glm.cross(Up, a)
+
+        axis = glm.normalize(axis)
+        return glm.quatAxisAngle(axis, glm.PI)
+    }
+
+    axis := glm.cross(a, b)
+    q: glm.quat = quaternion(w = -(1 + dot), x = axis.x, y = axis.y, z = axis.z)
+    return glm.normalize(q)
 }
 
 mat3ToMat4 :: #force_inline proc(m: glm.mat3) -> glm.mat4 {
