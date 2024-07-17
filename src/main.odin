@@ -10,6 +10,7 @@ import gl "vendor:OpenGL"
 import "vendor:glfw"
 
 import "assets"
+import "audio"
 import "cards"
 import "entity"
 import "farkle"
@@ -129,6 +130,8 @@ main :: proc() {
     init_camera(1600.0 / 900.0)
     on_mouse_move(&cam, {1600, 900} / 2)
 
+    audio.init()
+    defer audio.deinit()
     // worldmap.generate()
 
     fps_frames, fps_ms_per_frame: f64
