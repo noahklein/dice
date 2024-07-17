@@ -40,6 +40,8 @@ editor_update :: proc() {
         glfw.SetCursorPos(window.id, f64(0.5 * screen.x), f64(0.5 * screen.y))
     }
 
+    if window.pressed_mbtn(.Middle) do input += {.EditorSelect}
+
     damp_enabled := window.key_down(.LeftAlt)
 
     if .EditorSelect in input {

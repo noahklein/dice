@@ -1,7 +1,6 @@
 package window
 
 import "base:runtime"
-import "core:fmt"
 import "vendor:glfw"
 
 keys_events: [Action]map[Key]bool
@@ -88,8 +87,18 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
     context = runtime.default_context()
     k := Key(key)
     switch action {
-        case glfw.PRESS:   keys_events[.Press][k] = true
-        case glfw.RELEASE: keys_events[.Release][k] = true
-        case glfw.REPEAT:  keys_events[.Repeat][k] = true
+    case glfw.PRESS:   keys_events[.Press][k]   = true
+    case glfw.RELEASE: keys_events[.Release][k] = true
+    case glfw.REPEAT:  keys_events[.Repeat][k]  = true
+    }
+}
+
+mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i32) {
+    context = runtime.default_context()
+    mb := MouseButton(button)
+    switch action {
+    case glfw.PRESS:   mbtn_events[.Press]   += {mb}
+    case glfw.RELEASE: mbtn_events[.Release] += {mb}
+    case glfw.REPEAT:  mbtn_events[.Repeat]  += {mb}
     }
 }

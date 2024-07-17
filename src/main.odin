@@ -57,7 +57,7 @@ main :: proc() {
     glfw.MakeContextCurrent(window.id)
 
     glfw.SetKeyCallback(window.id, window.key_callback)
-    glfw.SetMouseButtonCallback(window.id, mouse_button_callback)
+    glfw.SetMouseButtonCallback(window.id, window.mouse_button_callback)
     glfw.SetCursorPosCallback(window.id, mouse_callback)
 
     gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
@@ -154,6 +154,9 @@ main :: proc() {
 
         glfw.PollEvents()
         dt := window.delta_time()
+
+        if window.pressed_mbtn(.Left)  do input += {.Fire}
+        if window.pressed_mbtn(.Right) do input += {.Cancel}
 
         handle_input(window.id, dt)
         if !physics_paused {
@@ -425,19 +428,6 @@ mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
     mouse_diff = mouse_coords - prev_mouse_coords
 }
 
-mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i32) {
-    context = runtime.default_context()
-
-    if button == glfw.MOUSE_BUTTON_RIGHT && action == glfw.PRESS {
-
-    }
-
-    if action == glfw.PRESS do switch button {
-        case glfw.MOUSE_BUTTON_LEFT:   input += {.Fire}
-        case glfw.MOUSE_BUTTON_RIGHT:  input += {.Cancel}
-        case glfw.MOUSE_BUTTON_MIDDLE: input += {.EditorSelect}
-    }
-}
 
 handle_input :: proc(w: glfw.WindowHandle, dt: f32) {
     forward := int(window.key_down(.W) || window.key_down(.Up)) -
