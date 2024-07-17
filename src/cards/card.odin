@@ -127,14 +127,21 @@ CARD_USING_ROTATION := glm.quatAxisAngle(nmath.Forward, glm.TAU / 20)
 
 animate_card_using :: proc(id: entity.ID) {
     DUR :: 0.2
-    e := entity.get(id)
-    tween.to(id, tween.Pos{e.pos + CARD_USING_TRANSLATION}, DUR)
-    tween.to(id, tween.Orientation{e.orientation * CARD_USING_ROTATION}, DUR)
+    tween.to(id, tween.Pos{drawn_card_pos(id) + CARD_USING_TRANSLATION}, DUR)
+    tween.to(id, tween.Orientation{FACE_UP * CARD_USING_ROTATION}, DUR)
 }
 
 animate_card_cancel :: proc(id: entity.ID) {
     DUR :: 0.2
-    e := entity.get(id)
-    tween.to(id, tween.Pos{e.pos - CARD_USING_TRANSLATION}, DUR)
-    tween.to(id, tween.Orientation{e.orientation * conj(CARD_USING_ROTATION)}, DUR)
+    tween.to(id, tween.Pos{drawn_card_pos(id)}, DUR)
+    tween.to(id, tween.Orientation{FACE_UP}, DUR)
+}
+
+drawn_card_pos :: proc(id: entity.ID) -> glm.vec3 {
+    for c, i in drawn_cards do if c.ent_id == id {
+        z := 3 * f32(MAX_DRAWN_CARDS - i)
+        return DECK_POS + {0, 0, z}
+    }
+
+    return 0
 }

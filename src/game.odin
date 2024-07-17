@@ -179,6 +179,7 @@ update_farkle :: proc(dt: f32) {
         }
         if .Fire in input {
             for c in cards.drawn_cards do if c.ent_id == hovered_ent_id { // Switch active card.
+                if c.ent_id == cards.active.ent_id do return
                 cards.cancel()
                 cards.use(c)
                 return
