@@ -5,6 +5,7 @@ import gl "vendor:OpenGL"
 import glm "core:math/linalg/glsl"
 
 MAX_LINES :: 128
+MAX_QUADS :: 128
 
 line_renderer: LineRenderer
 
@@ -81,15 +82,112 @@ lines_flush :: proc() {
     clear(&line_renderer.lines)
 }
 
+QuadRenderer :: struct {
+    vao, vbo, ibo: u32,
+    shader: Shader,
+    quad: [6]QuadVertex,
+    instances: [dynamic]QuadInstance,
+}
+quad_renderer: QuadRenderer
+
+QuadVertex :: struct {
+    pos, tex_coord: glm.vec2,
+}
+
+QuadInstance :: struct {
+    color: [4]u8,
+    model: glm.mat4,
+}
+
+quad_renderer_init :: proc(shader: Shader) {
+    qr: QuadRenderer
+    gl.CreateVertexArrays(1, &qr.vao)
+    gl.BindVertexArray(qr.vao)
+
+    qr.shader = shader
+    qr.quad = {
+        {pos = { 1, -1}, tex_coord = {1, 0}},
+        {pos = {-1, -1}, tex_coord = {0, 0}},
+        {pos = {-1,  1}, tex_coord = {0, 1}},
+
+        {pos = { 1,  1}, tex_coord = {1, 1}},
+        {pos = { 1, -1}, tex_coord = {1, 0}},
+        {pos = {-1,  1}, tex_coord = {0, 1}},
+    }
+    qr.instances = make([dynamic]QuadInstance, 0, MAX_QUADS)
+
+    gl.CreateBuffers(1, &qr.vbo)
+    gl.BindBuffer(gl.ARRAY_BUFFER, qr.vbo)
+    gl.BufferData(gl.ARRAY_BUFFER, 6 * size_of(QuadVertex), &qr.quad, gl.STATIC_DRAW)
+
+    gl.EnableVertexAttribArray(0)
+    gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, pos))
+    gl.EnableVertexAttribArray(1)
+    gl.VertexAttribPointer(1, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, tex_coord))
+
+    gl.CreateBuffers(1, &qr.ibo)
+    gl.BindBuffer(gl.ARRAY_BUFFER, qr.ibo)
+    gl.BufferData(gl.ARRAY_BUFFER, MAX_QUADS * size_of(QuadInstance), nil, gl.DYNAMIC_DRAW)
+
+    gl.EnableVertexAttribArray(2)
+    gl.VertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, size_of(QuadInstance), offset_of(QuadInstance, color))
+    gl.VertexAttribDivisor(2, 1)
+
+    for i in 0..<4 {
+        id := u32(3 + i)
+        gl.EnableVertexAttribArray(id)
+        offset := offset_of(QuadInstance, model) + (uintptr(i * 4) * size_of(f32))
+        gl.VertexAttribPointer(id, 4, gl.FLOAT, false, size_of(QuadInstance), offset)
+        gl.VertexAttribDivisor(id, 1)
+    }
+
+    quad_renderer = qr
+}
+
+quads_begin :: proc(screen: glm.vec2) {
+    gl.UseProgram(quad_renderer.shader.id)
+
+    proj := glm.mat4Ortho3d(0, screen.x, screen.y, 0, -1, 1)
+    setMat4(quad_renderer.shader.id, "projection", &proj[0, 0])
+}
+
+draw_quad :: proc(pos, size: glm.vec2, radians: f32 = 0, color: [4]u8 = 255) {
+    if len(quad_renderer.instances) + 1 >= MAX_QUADS {
+        quads_flush()
+    }
+
+    model := glm.mat4Translate({pos.x, pos.y, 0})
+    model *= glm.mat4Translate({0.5 * size.x, 0.5 * size.y, 0})
+    model *= glm.mat4Rotate({0, 0, 1}, radians)
+    model *= glm.mat4Translate({-0.5 * size.x, -0.5 * size.y, 0})
+    model *= glm.mat4Scale({size.x, size.y, 1})
+
+    append(&quad_renderer.instances, QuadInstance{
+        color = color,
+        model = model,
+    })
+}
+
+quads_flush :: proc() {
+    if len(quad_renderer.instances) == 0 {
+        return
+    }
+
+    gl.BindVertexArray(quad_renderer.vao)
+    gl.BindBuffer(gl.ARRAY_BUFFER, quad_renderer.ibo)
+    gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(quad_renderer.instances) * size_of(QuadInstance), &quad_renderer.instances[0])
+    gl.DrawArraysInstanced(gl.TRIANGLES, 0, 6, i32(len(quad_renderer.instances)))
+
+    clear(&quad_renderer.instances)
+}
+
 FullscreenQuadRenderer :: struct {
     vao, vbo: u32,
     shader: Shader,
     quad: [6]FullscreenQuadVertex,
 }
 
-FullscreenQuadVertex :: struct {
-    pos, tex_coord: glm.vec2,
-}
+FullscreenQuadVertex :: QuadVertex
 
 fullscreen_quad_renderer : FullscreenQuadRenderer
 

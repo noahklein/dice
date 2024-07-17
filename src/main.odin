@@ -111,16 +111,23 @@ main :: proc() {
     }
 
     // Setup quad renderer.
-    quad_shader, quad_shader_err := render.shader_load("src/shaders/quad.glsl")
-    if quad_shader_err != nil {
-        fmt.eprintln("Failed to load quad shader:", err)
+    fullscreen_quad_shader, fullscreen_quad_shader_err := render.shader_load("src/shaders/fullscreen-quad.glsl")
+    if fullscreen_quad_shader_err != nil {
+        fmt.eprintln("Failed to load fullscreen quad shader:", err)
         return
     }
-    render.fullscreen_quad_renderer_init(quad_shader)
+    render.fullscreen_quad_renderer_init(fullscreen_quad_shader)
     if err := render.text_renderer_init(screen); err != nil {
         fmt.eprintln("failed to load text renderer", err)
         return
     }
+
+    quad_shader, quad_shader_err := render.shader_load("src/shaders/quad.glsl")
+    if quad_shader_err != nil {
+        fmt.eprintln("Failed to load quad shader:", quad_shader_err)
+        return
+    }
+    render.quad_renderer_init(quad_shader)
 
     render.shapes_init()
     mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
@@ -270,6 +277,12 @@ main :: proc() {
             }
         }
         render.renderer_flush(.Cube)
+
+        render.quads_begin(screen)
+        render.draw_quad({200, 200}, {50, 50})
+        render.draw_quad({600, 70}, {50, 50}, color = nmath.Red)
+        render.draw_quad({1500, 700}, {50, 50}, glm.TAU / 8, color = {100, 78, 19, 190})
+        render.quads_flush()
 
         when ODIN_DEBUG {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
