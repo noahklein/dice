@@ -268,7 +268,7 @@ main :: proc() {
                 render.renderer_draw(mesh, {
                     transform = entity.transform(d.entity_id),
                     texture = 0,
-                    color = {1, 1, 1, 0.5},
+                    color = {255, 255, 255, 122},
                     ent_id = d.entity_id,
                 })
             }
@@ -332,7 +332,7 @@ init_entities :: proc() {
     FLOOR_SIZE   :: 10
     WALL_HEIGHT :: 50
     floor := entity.new(pos = {0, -5, 0}, scale = {FLOOR_SIZE, 5, FLOOR_SIZE})
-    render.create_mesh(.Cube, floor, {0, 0, 1, 1}, .None)
+    render.create_mesh(.Cube, floor, nmath.Blue, .None)
     physics.bodies_create(floor, .Box, restitution = 1)
     floor_ent_id = floor
 
@@ -360,7 +360,7 @@ init_entities :: proc() {
     desk_ent := entity.get(desk)
     draggable_orientation := farkle.rotate_show_pip(.D6, 6)
     draggable_die_id = entity.new(desk_ent.pos + desk_ent.scale * {0.6, 1, 0}, orientation = draggable_orientation)
-    render.create_mesh(.Cube, draggable_die_id, 1, .D6)
+    render.create_mesh(.Cube, draggable_die_id, nmath.White, .D6)
     physics.bodies_create(draggable_die_id, .Box, mass = 1)
 
     // Create dice.
@@ -369,27 +369,27 @@ init_entities :: proc() {
         switch die_type {
         case .D4:
             id := entity.new()
-            render.create_mesh(.Tetrahedron, id, {0.4, 1, 0.4, 1}, .D4)
+            render.create_mesh(.Tetrahedron, id, nmath.LightGreen, .D4)
             physics.bodies_create(id, .Tetrahedron, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .D6:
             id := entity.new()
-            render.create_mesh(.Cube, id, {1, 0.4, 0.4, 1}, .D6)
+            render.create_mesh(.Cube, id, nmath.LightRed, .D6)
             physics.bodies_create(id, .Box, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .Even:
             id := entity.new()
-            render.create_mesh(.Cube, id, {0.4, 0.4, 1, 1}, .Even)
+            render.create_mesh(.Cube, id, nmath.LightBlue, .Even)
             physics.bodies_create(id, .Box, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .Odd:
             id := entity.new()
-            render.create_mesh(.Cube, id, {0.4, 1, 0.4, 1}, .Odd)
+            render.create_mesh(.Cube, id, nmath.LightGreen, .Odd)
             physics.bodies_create(id, .Box, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         case .D8:
             id := entity.new()
-            render.create_mesh(.Octahedron, id, {1, 1, 1, 1}, .D8)
+            render.create_mesh(.Octahedron, id, nmath.White, .D8)
             physics.bodies_create(id, .Octahedron, mass = 1)
             farkle.round.dice[i] = farkle.Die{ entity_id = id, type = die_type }
         }
@@ -484,11 +484,11 @@ shoot_random_box :: proc(cursor, window_size: glm.vec2) {
         scale := glm.vec3(1)
         mass := scale.x * scale.y * scale.z
 
-        color := 0.5 + 0.5*random.vec3().rgbr
+        color: glm.vec4 = 0.5 + 0.5*random.vec3().rgbr
         color.a = 1
 
         box := entity.new(pos = cam.pos, scale = scale, orientation = random.quat())
-        render.create_mesh(.Cube, box, color, tex = .D6)
+        render.create_mesh(.Cube, box, nmath.vec4_to_color(color), tex = .D6)
         physics.bodies_create(box, .Box, mass = mass, vel = p * ray)
     }
 }
@@ -503,7 +503,7 @@ project_ray_plane :: proc(r_origin, r_dir, p_norm, p_center: glm.vec3) -> (glm.v
     return t, t > 0
 }
 
-set_floor_color :: proc(color: [4]f32) {
+set_floor_color :: proc(color: nmath.Color) {
     m, ok := &render.meshes[floor_ent_id]
     if ok do m.color = color
 }

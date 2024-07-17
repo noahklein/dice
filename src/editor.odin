@@ -64,7 +64,7 @@ quat_look_at :: proc(a, b: glm.vec3) -> glm.quat {
     return quaternion(w = w, x = cross.x, y = cross.y, z = cross.z)
 }
 
-draw_arrow :: proc(a, b: glm.vec3, color: [4]f32, id: entity.ID) {
+draw_arrow :: proc(a, b: glm.vec3, color: nmath.Color, id: entity.ID) {
     SCALE :: 0.25
     color := color
     if hovered_ent_id == id {

@@ -92,7 +92,7 @@ update_farkle :: proc(dt: f32) {
         // Serenity now, start scoring.
         hands, legal := farkle.legal_hands(farkle.count_dice_pips(false))
         if !legal { // Bust
-            set_floor_color({1, 0, 0, 1})
+            set_floor_color(nmath.Red)
             farkle.round.turns_remaining -= 1
             if farkle.round.turns_remaining <= 0 {
                 // Loss
@@ -108,7 +108,7 @@ update_farkle :: proc(dt: f32) {
         }
 
         legal_hands = hands
-        set_floor_color({0, 1, 0.4, 1})
+        set_floor_color({0, 255, 100, 255})
         farkle_state = .HoldingDice
         physics_paused = true
         cards.actions = 1
@@ -133,7 +133,7 @@ update_farkle :: proc(dt: f32) {
 
         invalid := .Invalid in holding_hands || holding_hands == {}
         // Give some feedback.
-        set_floor_color({0.4, 1, 0, 1} if invalid else {0.6, 1, 0, 1})
+        set_floor_color({100, 255, 0, 255} if invalid else {150, 255, 0, 255})
 
         if .Stand in input && !invalid {
             farkle.round.total_score += farkle.round.score + holding_score
@@ -205,7 +205,7 @@ throw_dice :: proc() {
 
     dice_rolling_time = 0
     farkle_state = .Rolling
-    set_floor_color({0, 0, 1, 1})
+    set_floor_color(nmath.Blue)
 
     SPAWN_POINT :: glm.vec3{0, 20, 0}
     for &die in farkle.round.dice {

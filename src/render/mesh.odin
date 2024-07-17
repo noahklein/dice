@@ -13,7 +13,7 @@ mesh_renderers: [MeshId]Renderer
 
 Mesh :: struct {
     mesh_id: MeshId,
-    color: [4]f32,
+    color: [4]u8,
     tex_unit: u32,
 
     hidden: bool,
@@ -26,7 +26,7 @@ IMesh :: struct {
     ent_id: entity.ID, // For use in mouse-picking.
 }
 
-create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: assets.TextureId = .None) {
+create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]u8 = 255, tex: assets.TextureId = .None) {
     meshes[ent_id] = Mesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
@@ -34,7 +34,7 @@ create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]f32 = 1, tex: asset
 }
 
 // Immediate-mode, draws once and then forgets.
-draw_mesh :: proc(id: MeshId, ent_id: entity.ID = 0, color: [4]f32 = 1, tex: assets.TextureId = .None, pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) {
+draw_mesh :: proc(id: MeshId, ent_id: entity.ID = 0, color: [4]u8 = 255, tex: assets.TextureId = .None, pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) {
     append(&immediate_meshes, IMesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
@@ -58,7 +58,7 @@ Vertex :: struct {
 
 Instance :: struct {
     texture: u32,
-    color: [4]f32,
+    color: [4]u8,
     ent_id:  i32, // For mouse picking
     transform: matrix[4, 4]f32,
 }
@@ -104,7 +104,7 @@ renderer_init :: proc(id: MeshId, obj: Obj) {
     gl.VertexAttribIPointer(3, 1, gl.UNSIGNED_INT, size_of(Instance), offset_of(Instance, texture))
     gl.VertexAttribDivisor(3, 1)
     gl.EnableVertexAttribArray(4)
-    gl.VertexAttribPointer(4, 4, gl.FLOAT, false, size_of(Instance), offset_of(Instance, color))
+    gl.VertexAttribPointer(4, 4, gl.UNSIGNED_BYTE, true, size_of(Instance), offset_of(Instance, color))
     gl.VertexAttribDivisor(4, 1)
 
     gl.EnableVertexAttribArray(5)

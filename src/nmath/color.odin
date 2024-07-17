@@ -1,24 +1,43 @@
 package nmath
 
-Color :: [4]f32
+import glm "core:math/linalg/glsl"
 
-Red :: Color{1, 0, 0, 1}
-Green :: Color{0, 1, 0, 1}
-Blue :: Color{0, 0, 1, 1}
-Brown :: Color{0.588, 0.294, 0, 1}
-Black :: Color{0, 0, 0, 1}
+Color :: [4]u8
 
-color_brightness :: proc(color: Color, factor: f32) -> (out: Color) {
+Red        :: Color{255, 0, 0, 255}
+LightRed   :: Color{255, 100, 100, 255}
+Green      :: Color{0, 255, 0, 255}
+LightGreen :: Color{100, 255, 100, 255}
+Blue       :: Color{0, 0, 255, 255}
+LightBlue  :: Color{100, 100, 255, 255}
+
+Brown :: Color{140, 70, 19, 255}
+
+Black :: Color{0, 0, 0, 255}
+White :: Color{255, 255, 255, 255}
+
+color_to_vec4 :: proc(c: Color) -> glm.vec4 {
+    return {f32(c.r), f32(c.g), f32(c.b), f32(c.a)} / 255
+}
+
+vec4_to_color :: proc(v: glm.vec4) -> Color {
+    v := 255 * v
+    return {u8(v.r), u8(v.g), u8(v.b), u8(v.a)}
+}
+
+
+color_brightness :: proc(color: Color, factor: f32) -> Color {
     factor := clamp(factor, -1, 1)
+    vec := color_to_vec4(color)
 
     if factor < 0 {
         factor = 1 + factor
-        out.rgb = color.rgb * factor
+        vec.rgb *= factor
     } else {
-        out.rgb = (1 - color.rgb) * factor + color.rgb
+        vec.rgb = (1 - vec.rgb) * factor + vec.rgb
     }
 
+    out  := vec4_to_color(vec)
     out.a = color.a
-
-    return
+    return out
 }
