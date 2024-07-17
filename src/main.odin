@@ -56,7 +56,7 @@ main :: proc() {
     defer glfw.DestroyWindow(window.id)
     glfw.MakeContextCurrent(window.id)
 
-    glfw.SetKeyCallback(window.id, key_callback)
+    glfw.SetKeyCallback(window.id, window.key_callback)
     glfw.SetMouseButtonCallback(window.id, mouse_button_callback)
     glfw.SetCursorPosCallback(window.id, mouse_callback)
 
@@ -148,6 +148,7 @@ main :: proc() {
             render.watch(&quad_shader)
             render.watch(&render.text_render.shader)
             input = {}
+            window.clear_events()
             free_all(context.temp_allocator)
         }
 
@@ -175,7 +176,7 @@ main :: proc() {
             DIST :: 10
 
 
-            if dragging_die && window.mousebtn_up(.Left) {
+            if dragging_die && window.mbtn_up(.Left) {
                 dragging_die = false
                 for &b in physics.bodies do if b.entity_id == draggable_die_id {
                     target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, screen)
@@ -400,24 +401,10 @@ error_callback :: proc "c" (code: i32, desc: cstring) {
 key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
 	context = runtime.default_context()
     if action == glfw.PRESS do switch key {
-        case glfw.KEY_ESCAPE:
-            glfw.SetWindowShouldClose(window, glfw.TRUE)
-        case glfw.KEY_LEFT_SHIFT:
-            debug_draw = !debug_draw
         case glfw.KEY_SPACE:
-            physics_paused = !physics_paused
         case glfw.KEY_T:
-            physics_paused = false
-            farkle_state = .ReadyToThrow
-            throw_dice()
-        case glfw.KEY_C:
-            cursor_hidden = !cursor_hidden
-            if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
-            init_mouse = false
 
-            cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
-            glfw.SetInputMode(window, glfw.CURSOR, cursor_status)
-            glfw.SetCursorPos(window, f64(0.5 * screen.x), f64(0.5 * screen.y))
+        case glfw.KEY_C:
 
         case glfw.KEY_R: input += {.Confirm}
         case glfw.KEY_F: input += {.Stand}

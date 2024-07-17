@@ -1,6 +1,13 @@
 package window
 
+import "base:runtime"
+import "core:fmt"
 import "vendor:glfw"
+
+keys_events: [Action]map[Key]bool
+mbtn_events: [Action]bit_set[MouseButton]
+
+Action :: enum { Press, Release, Repeat }
 
 Key :: enum {
     A = glfw.KEY_A,
@@ -29,9 +36,12 @@ Key :: enum {
     X = glfw.KEY_X,
     Y = glfw.KEY_Y,
     Z = glfw.KEY_Z,
+    Space = glfw.KEY_SPACE,
     LeftAlt = glfw.KEY_LEFT_ALT,
+    LShift = glfw.KEY_LEFT_SHIFT,
     RShift = glfw.KEY_RIGHT_SHIFT,
     RCtrl = glfw.KEY_RIGHT_CONTROL,
+    Esc  = glfw.KEY_ESCAPE,
 
     Up = glfw.KEY_UP,
     Down = glfw.KEY_DOWN,
@@ -45,18 +55,41 @@ MouseButton :: enum {
     Right = glfw.MOUSE_BUTTON_RIGHT,
 }
 
+pressed_key   :: #force_inline proc(k: Key) -> bool { return k in keys_events[.Press] }
+released_key  :: #force_inline proc(k: Key) -> bool { return k in keys_events[.Release] }
+repeated_key  :: #force_inline proc(k: Key) -> bool { return k in keys_events[.Repeat] }
+
+pressed_mbtn  :: #force_inline proc(mb: MouseButton) -> bool { return mb in mbtn_events[.Press]}
+released_mbtn :: #force_inline proc(mb: MouseButton) -> bool { return mb in mbtn_events[.Release]}
+repeated_mbtn :: #force_inline proc(mb: MouseButton) -> bool { return mb in mbtn_events[.Repeat]}
+
 key_down :: #force_inline proc(k: Key) -> bool {
     return glfw.GetKey(id, i32(k)) == glfw.PRESS
 }
-
 key_up :: #force_inline proc(k: Key) -> bool {
     return glfw.GetKey(id, i32(k)) == glfw.RELEASE
 }
 
-mousebtn_down :: #force_inline proc(mb: MouseButton) -> bool {
+mbtn_down :: #force_inline proc(mb: MouseButton) -> bool {
     return glfw.GetMouseButton(id, i32(mb)) == glfw.PRESS
 }
-
-mousebtn_up :: #force_inline proc(mb: MouseButton) -> bool {
+mbtn_up   :: #force_inline proc(mb: MouseButton) -> bool {
     return glfw.GetMouseButton(id, i32(mb)) == glfw.RELEASE
+}
+
+clear_events :: proc() {
+    for action in Action {
+        clear(&keys_events[action])
+        mbtn_events[action] = {}
+    }
+}
+
+key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
+    context = runtime.default_context()
+    k := Key(key)
+    switch action {
+        case glfw.PRESS:   keys_events[.Press][k] = true
+        case glfw.RELEASE: keys_events[.Release][k] = true
+        case glfw.REPEAT:  keys_events[.Repeat][k] = true
+    }
 }

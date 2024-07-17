@@ -21,6 +21,25 @@ editor_update :: proc() {
     when !ODIN_DEBUG do return
     render.draw_mesh(.Quad, pos = render.light.position, tex = .EditorLight, flags = {.Billboard})
 
+    if window.pressed_key(.Esc) do glfw.SetWindowShouldClose(window.id, glfw.TRUE)
+    if window.pressed_key(.LShift) do debug_draw = !debug_draw
+    if window.pressed_key(.Space)  do physics_paused = !physics_paused
+    if window.pressed_key(.T) {
+        physics_paused = false
+        farkle_state = .ReadyToThrow
+        throw_dice()
+    }
+
+    if window.pressed_key(.C) {
+        cursor_hidden = !cursor_hidden
+        if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
+        init_mouse = false
+
+        cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
+        glfw.SetInputMode(window.id, glfw.CURSOR, cursor_status)
+        glfw.SetCursorPos(window.id, f64(0.5 * screen.x), f64(0.5 * screen.y))
+    }
+
     damp_enabled := window.key_down(.LeftAlt)
 
     if .EditorSelect in input {
@@ -33,10 +52,10 @@ editor_update :: proc() {
     if editor_selected_id < 0 do return
     ent := entity.get(editor_selected_id)
 
-    if editor_dragging != 0 && window.mousebtn_up(.Left) {
+    if editor_dragging != 0 && window.mbtn_up(.Left) {
         editor_dragging = 0
     }
-    if editor_dragging == 0 && window.mousebtn_down(.Left){
+    if editor_dragging == 0 && window.mbtn_down(.Left){
         editor_prev_mouse = mouse_coords
         switch hovered_ent_id {
             case UP_ENT_ID:      editor_dragging = nmath.Up
