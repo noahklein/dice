@@ -8,7 +8,7 @@ import "../assets"
 meshes: map[entity.ID]Mesh
 immediate_meshes := make([dynamic]IMesh, 0, 128) // Cleared on every frame.
 
-MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron, Cone, Cylinder }
+MeshId ::  enum { Cube, Sphere, Tetrahedron, Octahedron, Cone, Cylinder, Quad, }
 mesh_renderers: [MeshId]Renderer
 
 Mesh :: struct {
@@ -16,7 +16,7 @@ Mesh :: struct {
     color: [4]u8,
     tex_unit: u32,
 
-    hidden: bool,
+    flags: bit_set[MeshFlag],
 }
 
 // Immediate mesh, draws for one frame only.
@@ -26,20 +26,26 @@ IMesh :: struct {
     ent_id: entity.ID, // For use in mouse-picking.
 }
 
-create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]u8 = 255, tex: assets.TextureId = .None) {
+MeshFlag :: enum u8 { Hidden, Billboard, }
+
+create_mesh :: proc(id: MeshId, ent_id: entity.ID, color: [4]u8 = 255, tex: assets.TextureId = .None, flags: bit_set[MeshFlag] = {}) {
     meshes[ent_id] = Mesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
+        flags = flags,
     }
 }
 
 // Immediate-mode, draws once and then forgets.
-draw_mesh :: proc(id: MeshId, ent_id: entity.ID = 0, color: [4]u8 = 255, tex: assets.TextureId = .None, pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1) {
+draw_mesh :: proc(id: MeshId, ent_id: entity.ID = 0, color: [4]u8 = 255, tex: assets.TextureId = .None,
+                  pos: glm.vec3 = 0, orientation: glm.quat = 1, scale: glm.vec3 = 1,
+                  flags: bit_set[MeshFlag] = {}) {
     append(&immediate_meshes, IMesh{
         mesh_id = id,
         color = color, tex_unit = assets.tex_unit(tex),
         transform = { pos = pos, orientation = orientation, scale = scale },
         ent_id = ent_id,
+        flags = flags,
     })
 }
 
@@ -60,6 +66,7 @@ Instance :: struct {
     texture: u32,
     color: [4]u8,
     ent_id:  i32, // For mouse picking
+    billboard: int, // 1 for true
     transform: matrix[4, 4]f32,
 }
 
@@ -111,8 +118,12 @@ renderer_init :: proc(id: MeshId, obj: Obj) {
     gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Instance), offset_of(Instance, ent_id))
     gl.VertexAttribDivisor(5, 1)
 
+    gl.EnableVertexAttribArray(6)
+    gl.VertexAttribIPointer(6, 1, gl.INT, size_of(Instance), offset_of(Instance, billboard))
+    gl.VertexAttribDivisor(6, 1)
+
     for i in 0..<4 {
-        id := u32(6 + i)
+        id := u32(7 + i)
         gl.EnableVertexAttribArray(id)
         offset := offset_of(Instance, transform) + (uintptr(i * 4) * size_of(f32))
         gl.VertexAttribPointer(id, 4, gl.FLOAT, false, size_of(Instance), offset)
@@ -157,12 +168,13 @@ render_all_meshes :: proc() {
     defer clear(&immediate_meshes)
 
     for id in MeshId {
-        for ent_id, m in meshes do if !m.hidden && m.mesh_id == id {
+        for ent_id, m in meshes do if m.mesh_id == id && .Hidden not_in m.flags {
             renderer_draw(id, Instance{
                 transform = entity.transform(ent_id),
                 color = m.color,
                 ent_id = ent_id,
                 texture = m.tex_unit,
+                billboard = 1 if .Billboard in m.flags else 0,
             })
         }
 
@@ -172,6 +184,7 @@ render_all_meshes :: proc() {
                 color = m.color,
                 texture = m.tex_unit,
                 ent_id = m.ent_id,
+                billboard = 1 if .Billboard in m.flags else 0,
             })
         }
 

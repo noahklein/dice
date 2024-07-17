@@ -8,7 +8,8 @@ layout (location = 3) in int  vTexUnit;
 
 layout (location = 4) in vec4 vColor;
 layout (location = 5) in int vEntityId;
-layout (location = 6) in mat4 vTransform;
+layout (location = 6) in int billboard;
+layout (location = 7) in mat4 vTransform;
 
 uniform mat4 uView;
 uniform mat4 uProjection;
@@ -27,7 +28,14 @@ void main() {
     normal = mat3(transpose(inverse(vTransform))) * vNormal;
     color = vColor;
     entityId = vEntityId;
-    gl_Position = uProjection * uView * vec4(pos, 1);
+
+    mat4 look = uView * vTransform;
+    if (billboard == 1) {
+        look[0].xyz = vec3(1, 0, 0);
+        look[1].xyz = vec3(0, 1, 0);
+        look[2].xyz = vec3(0, 0, 1);
+    }
+    gl_Position = uProjection * look * vec4(vPos, 1);
 }
 
 #type fragment

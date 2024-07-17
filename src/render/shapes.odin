@@ -4,6 +4,8 @@ import "core:fmt"
 import gl "vendor:OpenGL"
 import glm "core:math/linalg/glsl"
 
+MAX_LINES :: 128
+
 line_renderer: LineRenderer
 
 LineRenderer :: struct {
@@ -23,6 +25,7 @@ shapes_init :: proc()  {
         fmt.panicf("Failed to load line shader: %v", err)
     }
     line_renderer.shader = shader
+    line_renderer.lines = make([dynamic]LineVertex, 0, MAX_LINES)
 
     gl.CreateVertexArrays(1, &line_renderer.vao)
     gl.BindVertexArray(line_renderer.vao)
@@ -36,8 +39,6 @@ shapes_init :: proc()  {
     gl.EnableVertexAttribArray(1)
     gl.VertexAttribPointer(1, 3, gl.FLOAT, false, size_of(LineVertex), offset_of(LineVertex, color))
 }
-
-MAX_LINES :: 100
 
 lines_begin :: proc(proj, view: ^glm.mat4) {
     gl.UseProgram(line_renderer.shader.id)
@@ -80,20 +81,20 @@ lines_flush :: proc() {
     clear(&line_renderer.lines)
 }
 
-QuadRenderer :: struct {
+FullscreenQuadRenderer :: struct {
     vao, vbo: u32,
     shader: Shader,
-    quad: [6]QuadVertex,
+    quad: [6]FullscreenQuadVertex,
 }
 
-QuadVertex :: struct {
+FullscreenQuadVertex :: struct {
     pos, tex_coord: glm.vec2,
 }
 
-quad_renderer : QuadRenderer
+fullscreen_quad_renderer : FullscreenQuadRenderer
 
-quad_renderer_init :: proc(shader: Shader) {
-    qr : QuadRenderer
+fullscreen_quad_renderer_init :: proc(shader: Shader) {
+    qr : FullscreenQuadRenderer
     gl.CreateVertexArrays(1, &qr.vao)
     gl.BindVertexArray(qr.vao)
     defer gl.BindVertexArray(0)
@@ -111,26 +112,26 @@ quad_renderer_init :: proc(shader: Shader) {
 
     gl.CreateBuffers(1, &qr.vbo)
     gl.BindBuffer(gl.ARRAY_BUFFER, qr.vbo)
-    gl.BufferData(gl.ARRAY_BUFFER, 6 * size_of(QuadVertex), &qr.quad, gl.STATIC_DRAW)
+    gl.BufferData(gl.ARRAY_BUFFER, 6 * size_of(FullscreenQuadVertex), &qr.quad, gl.STATIC_DRAW)
 
     gl.EnableVertexAttribArray(0)
-    gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, pos))
+    gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(FullscreenQuadVertex), offset_of(FullscreenQuadVertex, pos))
     gl.EnableVertexAttribArray(1)
-    gl.VertexAttribPointer(1, 2, gl.FLOAT, false, size_of(QuadVertex), offset_of(QuadVertex, tex_coord))
+    gl.VertexAttribPointer(1, 2, gl.FLOAT, false, size_of(FullscreenQuadVertex), offset_of(FullscreenQuadVertex, tex_coord))
 
-    quad_renderer = qr
+    fullscreen_quad_renderer = qr
 }
 
-draw_quad :: proc(tex: u32) {
+draw_fullscreen_quad :: proc(tex: u32) {
     // gl.BindTextureUnit(0, tex)
     gl.BindTexture(gl.TEXTURE_2D, tex)
-    gl.UseProgram(quad_renderer.shader.id)
-    setInt(quad_renderer.shader.id, "tex", 0)
+    gl.UseProgram(fullscreen_quad_renderer.shader.id)
+    setInt(fullscreen_quad_renderer.shader.id, "tex", 0)
 
-    gl.BindVertexArray(quad_renderer.vao)
-    gl.BindBuffer(gl.ARRAY_BUFFER, quad_renderer.vbo)
+    gl.BindVertexArray(fullscreen_quad_renderer.vao)
+    gl.BindBuffer(gl.ARRAY_BUFFER, fullscreen_quad_renderer.vbo)
 
-    // gl.BufferSubData(gl.ARRAY_BUFFER, 0, 6 * size_of(QuadVertex), &quad_renderer.quad[0])
+    // gl.BufferSubData(gl.ARRAY_BUFFER, 0, 6 * size_of(QuadVertex), &fullscreen_quad_renderer.quad[0])
 
     gl.DrawArrays(gl.TRIANGLES, 0, 6)
 }

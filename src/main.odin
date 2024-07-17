@@ -83,13 +83,14 @@ main :: proc() {
         .Cone = "assets/cone.obj",
         .Cylinder = "assets/cylinder.obj",
         .Sphere = "assets/sphere.obj",
+        .Quad = "assets/quad.obj",
     }
 
     for id in render.MeshId {
         path := paths[id]
         obj, err := render.load_obj(path)
         if err != nil {
-            fmt.eprintln("Failed to load mesh %q: %v", path, err)
+            fmt.eprintfln("Failed to load mesh %q: %v", path, err)
         }
 
         render.renderer_init(id, obj)
@@ -115,7 +116,7 @@ main :: proc() {
         fmt.eprintln("Failed to load quad shader:", err)
         return
     }
-    render.quad_renderer_init(quad_shader)
+    render.fullscreen_quad_renderer_init(quad_shader)
     if err := render.text_renderer_init(screen); err != nil {
         fmt.eprintln("failed to load text renderer", err)
         return
@@ -236,12 +237,7 @@ main :: proc() {
         render.setMat4(shader.id, "uProjection", &proj[0, 0])
         render.setFloat3(shader.id, "uCamPos", cam.pos)
         render.setIntArray(shader.id, "uTextures", len(assets.texture_units), &assets.texture_units[0])
-        render.setStruct(shader.id, "uLight", render.Light, render.Light{
-            position = 5, direction = {0, 0, 1},
-            ambient = 0.5, diffuse = 0.5, specular = 0.75,
-            constant = 1, linear = 0.09, quadratic = 0.032,
-            cutoff = 12.5, outer_cutoff = 17.5,
-        })
+        render.setStruct(shader.id, "uLight", render.Light, render.light)
 
         // Rebind textures to expected slots.
         for tex in assets.textures {
@@ -311,7 +307,7 @@ main :: proc() {
 			gl.Clear(gl.COLOR_BUFFER_BIT)
 			gl.Disable(gl.DEPTH_TEST)
             gl.Disable(gl.CULL_FACE)
-			render.draw_quad(mouse_pick.tex)
+			render.draw_fullscreen_quad(mouse_pick.tex)
         }
 
         if debug_draw {

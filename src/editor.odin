@@ -19,6 +19,7 @@ editor_prev_mouse: glm.vec2
 
 editor_update :: proc() {
     when !ODIN_DEBUG do return
+    render.draw_mesh(.Quad, pos = render.light.position, tex = .EditorLight, flags = {.Billboard})
 
     damp_enabled := window.key_down(.LeftAlt)
 
