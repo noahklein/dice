@@ -8,6 +8,7 @@ import "../render"
 import "../tween"
 
 SCALE :: glm.vec3{1, 0.05, 1.64285}
+PILE_BASE_SCALE := SCALE * {1.2, 0.2, 1.2} // Draw and discard outlines on desk.
 MAX_DRAWN_CARDS :: 3
 
 deck: [dynamic]CardType = {
@@ -48,8 +49,13 @@ init :: proc() {
     clear(&draw_pile)
     clear(&discard_pile)
 
+    draw_ent    := entity.new(DECK_POS,    orientation = FACE_DOWN, scale = SCALE * 1.2)
+    discard_ent := entity.new(DISCARD_POS, orientation = FACE_DOWN, scale = SCALE * 1.2)
+    render.create_mesh(.Cube, draw_ent,    nmath.Black)
+    render.create_mesh(.Cube, discard_ent, nmath.Black)
+
     for card_type, i in deck {
-        spawn := DECK_POS + f32(i) * SCALE.y * nmath.Up
+        spawn := DECK_POS + f32(i)*SCALE.y*nmath.Up + {0, 2*PILE_BASE_SCALE.y, 0}
         id := entity.new(pos = spawn, scale = SCALE, orientation = FACE_DOWN)
 
         append(&draw_pile, Card{ id, card_type })
@@ -63,19 +69,20 @@ draw :: proc() -> f32 {
 
     DUR :: 0.3
 
-    for card in drawn_cards {
-        ent := entity.get(card.ent_id)
-        tween.to(card.ent_id, tween.Pos{ent.pos + 3*nmath.Forward}, DUR / 2)
-    }
-
     card := pop(&draw_pile)
-
     append(&drawn_cards, card)
 
-    ent := entity.get(card.ent_id)
+    for c in drawn_cards do if c.ent_id != card.ent_id {
+        pos := drawn_card_pos(c.ent_id)
+        tween.to(card.ent_id, tween.Pos{pos}, DUR / 2)
+    }
+
+
     tween.to(card.ent_id, tween.Orientation{FACE_UP}, DUR)
-    tween.to(card.ent_id, tween.Pos{ent.pos + {0, 2, 3}}, DUR / 2)
-    tween.to(card.ent_id, tween.Pos{ent.pos + {0, 0, 3}}, DUR / 2, DUR / 2)
+
+    pos := drawn_card_pos(card.ent_id)
+    tween.to(card.ent_id, tween.Pos{pos + {0, 2, 0}}, DUR / 2)
+    tween.to(card.ent_id, tween.Pos{pos}, DUR / 2, DUR / 2)
 
     return DUR
 }
@@ -94,12 +101,11 @@ discard :: proc(id: entity.ID) -> f32 {
 
     tween.to(id, tween.Pos{discarded.pos + {0, 2, 3}}, DUR / 2)
 
-    y_offset := f32(len(discard_pile) + 1) * SCALE.y
+    y_offset := f32(len(discard_pile) + 1) * SCALE.y + 2*PILE_BASE_SCALE.y
     tween.to(id, tween.Pos{DISCARD_POS + y_offset*nmath.Up}, DUR / 2, DUR / 2)
 
     for card in drawn_cards {
-        ent := entity.get(card.ent_id)
-        if ent.pos.z > discarded.pos.z do tween.to(card.ent_id, tween.Pos{ent.pos - {0, 0, 3}}, DUR / 2)
+        tween.to(card.ent_id, tween.Pos{drawn_card_pos(card.ent_id)}, DUR / 2)
     }
 
     return DUR
@@ -139,7 +145,7 @@ animate_card_cancel :: proc(id: entity.ID) {
 
 drawn_card_pos :: proc(id: entity.ID) -> glm.vec3 {
     for c, i in drawn_cards do if c.ent_id == id {
-        z := 3 * f32(MAX_DRAWN_CARDS - i)
+        z := 3 * f32(i + 1)
         return DECK_POS + {0, 0, z}
     }
 
