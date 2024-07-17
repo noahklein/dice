@@ -132,8 +132,6 @@ main :: proc() {
     render.shapes_init()
     mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
 
-    prev_time := glfw.GetTime()
-
     init_entities()
     init_camera(screen.x / screen.y)
     on_mouse_move(&cam, screen / 2)
@@ -142,8 +140,7 @@ main :: proc() {
     defer audio.deinit()
     // worldmap.generate()
 
-    fps_frames, fps_ms_per_frame: f64
-    fps_prev_time := glfw.GetTime()
+    window.init()
     for !glfw.WindowShouldClose(window.id) {
         defer {
             glfw.SwapBuffers(window.id)
@@ -155,19 +152,7 @@ main :: proc() {
         }
 
         glfw.PollEvents()
-        fps_frames += 1
-
-        now := glfw.GetTime()
-        if now - fps_prev_time >= 1 {
-            fps_ms_per_frame = 1000.0 / fps_frames
-            if fps_ms_per_frame < 9.9 do fmt.eprintfln("Slow: %.3f ms/frame", fps_ms_per_frame)
-            fps_frames = 0
-            fps_prev_time = now
-        }
-
-        dt := f32(min((now - prev_time), 0.05))
-        prev_time = now
-
+        dt := window.delta_time()
 
         handle_input(window.id, dt)
         if !physics_paused {
@@ -286,7 +271,7 @@ main :: proc() {
 
         when ODIN_DEBUG {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
-            render.draw_textf({1500, 880}, "%.2f ms",  fps_ms_per_frame)
+            render.draw_textf({1500, 880}, "%.2f ms",  window.fps_ms_per_frame)
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
             render.draw_textf({20, 860}, "Streak Score: %v", farkle.round.score)
             render.draw_textf({20, 840}, "Total  Score: %v", farkle.round.total_score)
@@ -468,17 +453,22 @@ mouse_button_callback :: proc "c" (w: glfw.WindowHandle, button, action, mods: i
 }
 
 handle_input :: proc(w: glfw.WindowHandle, dt: f32) {
-    forward := int(glfw.GetKey(w, glfw.KEY_W) == glfw.PRESS) -
-               int(glfw.GetKey(w, glfw.KEY_S) == glfw.PRESS)
-    cam.pos += f32(forward) * cam.forward * cam.speed * dt
+    forward := int(window.key_down(.W) || window.key_down(.Up)) -
+               int(window.key_down(.S) || window.key_down(.Down))
+    strafe :=  int(window.key_down(.D) || window.key_down(.Right)) -
+               int(window.key_down(.A) || window.key_down(.Left))
+    fly    :=  int(window.key_down(.E) || window.key_down(.RCtrl)) -
+               int(window.key_down(.Q) || window.key_down(.RShift))
 
-    horiz := int(glfw.GetKey(w, glfw.KEY_D) == glfw.PRESS) -
-             int(glfw.GetKey(w, glfw.KEY_A) == glfw.PRESS)
-    cam.pos += f32(horiz) * cam.right * cam.speed * dt
+    up := glm.cross(cam.forward, cam.right)
+    vel: glm.vec3
+    vel += f32(forward) * cam.forward
+    vel += f32(strafe)  * cam.right
+    vel += f32(fly)     * up
 
-    vertical := int(glfw.GetKey(w, glfw.KEY_E) == glfw.PRESS) -
-                int(glfw.GetKey(w, glfw.KEY_Q) == glfw.PRESS)
-    cam.pos.y += f32(vertical) * cam.speed * dt
+    if vel != 0 {
+        cam.pos += glm.normalize(vel) * cam.speed * dt
+    }
 }
 
 shoot_random_box :: proc(cursor, window_size: glm.vec2) {
