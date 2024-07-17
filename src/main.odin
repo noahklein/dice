@@ -127,8 +127,8 @@ main :: proc() {
     prev_time := glfw.GetTime()
 
     init_entities()
-    init_camera(1600.0 / 900.0)
-    on_mouse_move(&cam, {1600, 900} / 2)
+    init_camera(screen.x / screen.y)
+    on_mouse_move(&cam, screen / 2)
 
     audio.init()
     defer audio.deinit()
