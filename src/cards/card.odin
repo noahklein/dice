@@ -67,7 +67,7 @@ draw :: proc() -> f32 {
     if len(drawn_cards) + 1 > MAX_DRAWN_CARDS do return 0
     if len(draw_pile) == 0 do return 0
 
-    DUR :: 0.3
+    DUR :: 0.4
 
     card := pop(&draw_pile)
     append(&drawn_cards, card)
@@ -77,18 +77,17 @@ draw :: proc() -> f32 {
         tween.to(card.ent_id, tween.Pos{pos}, DUR / 2)
     }
 
-
     tween.to(card.ent_id, tween.Orientation{FACE_UP}, DUR)
 
     pos := drawn_card_pos(card.ent_id)
-    tween.to(card.ent_id, tween.Pos{pos + {0, 2, 0}}, DUR / 2)
+    tween.to(card.ent_id, tween.Pos{pos + {0, 4, 0}}, DUR / 2)
     tween.to(card.ent_id, tween.Pos{pos}, DUR / 2, DUR / 2)
 
     return DUR
 }
 
 discard :: proc(id: entity.ID) -> f32 {
-    DUR :: 0.3
+    DUR :: 0.4
     index: int
     for card, i in drawn_cards do if id == card.ent_id {
         index = i
