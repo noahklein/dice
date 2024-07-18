@@ -3,6 +3,7 @@ package render
 import "core:fmt"
 import gl "vendor:OpenGL"
 import glm "core:math/linalg/glsl"
+import "../window"
 
 MAX_LINES :: 128
 MAX_QUADS :: 128
@@ -106,13 +107,13 @@ quad_renderer_init :: proc(shader: Shader) {
 
     qr.shader = shader
     qr.quad = {
-        {pos = { 1, -1}, tex_coord = {1, 0}},
-        {pos = {-1, -1}, tex_coord = {0, 0}},
-        {pos = {-1,  1}, tex_coord = {0, 1}},
+        {pos = {1, 0}, tex_coord = {1, 0}},
+        {pos = {0, 0}, tex_coord = {0, 0}},
+        {pos = {0, 1}, tex_coord = {0, 1}},
 
-        {pos = { 1,  1}, tex_coord = {1, 1}},
-        {pos = { 1, -1}, tex_coord = {1, 0}},
-        {pos = {-1,  1}, tex_coord = {0, 1}},
+        {pos = {1, 1}, tex_coord = {1, 1}},
+        {pos = {1, 0}, tex_coord = {1, 0}},
+        {pos = {0, 1}, tex_coord = {0, 1}},
     }
     qr.instances = make([dynamic]QuadInstance, 0, MAX_QUADS)
 
@@ -144,13 +145,6 @@ quad_renderer_init :: proc(shader: Shader) {
     quad_renderer = qr
 }
 
-quads_begin :: proc(screen: glm.vec2) {
-    gl.UseProgram(quad_renderer.shader.id)
-
-    proj := glm.mat4Ortho3d(0, screen.x, screen.y, 0, -1, 1)
-    setMat4(quad_renderer.shader.id, "projection", &proj[0, 0])
-}
-
 draw_quad :: proc(pos, size: glm.vec2, radians: f32 = 0, color: [4]u8 = 255) {
     if len(quad_renderer.instances) + 1 >= MAX_QUADS {
         quads_flush()
@@ -172,6 +166,11 @@ quads_flush :: proc() {
     if len(quad_renderer.instances) == 0 {
         return
     }
+
+    gl.UseProgram(quad_renderer.shader.id)
+
+    proj := glm.mat4Ortho3d(0, window.screen.x, window.screen.y, 0, -1, 1)
+    setMat4(quad_renderer.shader.id, "projection", &proj[0, 0])
 
     gl.BindVertexArray(quad_renderer.vao)
     gl.BindBuffer(gl.ARRAY_BUFFER, quad_renderer.ibo)

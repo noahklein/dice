@@ -165,8 +165,8 @@ setFloat3 ::  proc (id: u32, name: cstring, f: glm.vec3) {
 setFloat4 :: proc (id: u32, name: cstring, f: [4]f32) {
     gl.Uniform4f(loc(id, name), f.x, f.y, f.z, f.w)
 }
-setMat4 :: proc(id: u32, name: cstring, mat: [^]f32) {
-    gl.UniformMatrix4fv(loc(id, name), 1, false, mat)
+setMat4 :: proc(id: u32, name: cstring, mat: [^]f32, count: int = 1) {
+    gl.UniformMatrix4fv(loc(id, name), i32(count), false, mat)
 }
 setIntArray :: proc(id: u32, name: cstring, count: int, vals: [^]i32) {
     gl.Uniform1iv(loc(id, name), i32(count), vals)

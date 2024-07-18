@@ -6,6 +6,7 @@ import "vendor:glfw"
 
 import "entity"
 import "nmath"
+import "ngui"
 import "render"
 import "window"
 
@@ -32,12 +33,12 @@ editor_update :: proc() {
 
     if window.pressed_key(.C) {
         cursor_hidden = !cursor_hidden
-        if cursor_hidden do mouse_coords = screen / 2 // Set crosshair to center.
+        if cursor_hidden do mouse_coords = window.screen / 2 // Set crosshair to center.
         init_mouse = false
 
         cursor_status: i32 = glfw.CURSOR_DISABLED if cursor_hidden else glfw.CURSOR_NORMAL
         glfw.SetInputMode(window.id, glfw.CURSOR, cursor_status)
-        glfw.SetCursorPos(window.id, f64(0.5 * screen.x), f64(0.5 * screen.y))
+        glfw.SetCursorPos(window.id, f64(0.5 * window.screen.x), f64(0.5 * window.screen.y))
     }
 
     if window.pressed_mbtn(.Middle) do input += {.EditorSelect}
@@ -77,6 +78,11 @@ editor_update :: proc() {
     draw_arrow(ent.pos, ent.pos + {0, ent.scale.y, 0}, nmath.Green, UP_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {ent.scale.x, 0, 0}, nmath.Red, RIGHT_ENT_ID)
     draw_arrow(ent.pos, ent.pos + {0, 0, ent.scale.z}, nmath.Blue, FORWARD_ENT_ID)
+
+    ngui.update({mouse_coords.x, window.screen.y - mouse_coords.y})
+    if ngui.begin("My Window", {x = 200, y = 200, w = 400, h = 500}) {
+
+    }
 }
 
 quat_look_at :: proc(a, b: glm.vec3) -> glm.quat {

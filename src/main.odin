@@ -29,7 +29,6 @@ cursor_hidden: bool
 debug_draw: bool
 physics_paused: bool
 
-screen: glm.vec2
 mouse_coords, prev_mouse_coords, mouse_diff: glm.vec2
 mouse_pick: render.MousePicking
 hovered_ent_id, floor_ent_id, draggable_die_id: entity.ID
@@ -59,6 +58,7 @@ main :: proc() {
     glfw.SetKeyCallback(window.id, window.key_callback)
     glfw.SetMouseButtonCallback(window.id, window.mouse_button_callback)
     glfw.SetCursorPosCallback(window.id, mouse_callback)
+    glfw.SwapInterval(0)
 
     gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
     gl.Enable(gl.BLEND)
@@ -107,7 +107,7 @@ main :: proc() {
 
     {
         width, height := glfw.GetWindowSize(window.id)
-        screen = {f32(width), f32(height)} // @TODO: Window resizing.
+        window.screen = {f32(width), f32(height)} // @TODO: Window resizing.
     }
 
     // Setup quad renderer.
@@ -117,7 +117,7 @@ main :: proc() {
         return
     }
     render.fullscreen_quad_renderer_init(fullscreen_quad_shader)
-    if err := render.text_renderer_init(screen); err != nil {
+    if err := render.text_renderer_init(); err != nil {
         fmt.eprintln("failed to load text renderer", err)
         return
     }
@@ -130,11 +130,11 @@ main :: proc() {
     render.quad_renderer_init(quad_shader)
 
     render.shapes_init()
-    mouse_pick = render.mouse_picking_init(screen) or_else panic("failed to init mouse picking")
+    mouse_pick = render.mouse_picking_init(window.screen) or_else panic("failed to init mouse picking")
 
     init_entities()
-    init_camera(screen.x / screen.y)
-    on_mouse_move(&cam, screen / 2)
+    init_camera(window.screen.x / window.screen.y)
+    on_mouse_move(&cam, window.screen / 2)
 
     audio.init()
     defer audio.deinit()
@@ -182,7 +182,7 @@ main :: proc() {
             if dragging_die && window.mbtn_up(.Left) {
                 dragging_die = false
                 for &b in physics.bodies do if b.entity_id == draggable_die_id {
-                    target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, screen)
+                    target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, window.screen)
                     b.vel = target - entity.get(draggable_die_id).pos
                     b.vel *= 5
                 }
@@ -194,7 +194,7 @@ main :: proc() {
                 input -= {.Fire}
             }
             if dragging_die {
-                target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, screen)
+                target := cam.pos + DIST*mouse_to_ray(cam, mouse_coords, window.screen)
                 die.pos = glm.lerp(die.pos, target, 0.2)
             }
         }
@@ -267,13 +267,9 @@ main :: proc() {
         }
         render.renderer_flush(.Cube)
 
-        render.quads_begin(screen)
-        render.draw_quad({200, 200}, {50, 50})
-        render.draw_quad({600, 70}, {50, 50}, color = nmath.Red)
-        render.draw_quad({1500, 700}, {50, 50}, glm.TAU / 8, color = {100, 78, 19, 190})
         render.quads_flush()
 
-        when ODIN_DEBUG {
+        when ODIN_DEBUG && false {
             // state := fmt.enum_value_to_string(farkle_state) or_else "Error"
             render.draw_textf({1500, 880}, "%.2f ms",  window.fps_ms_per_frame)
             render.draw_textf({20, 880}, "Lives: %v", farkle.round.turns_remaining)
@@ -288,7 +284,7 @@ main :: proc() {
 
                 score_str := fmt.tprint(holding_score)
                 score_width := len(score_str) * 5 * 2
-                render.draw_textf(screen / 2 - {f32(score_width), screen.y / 5}, "%v", holding_score, scale = 2)
+                render.draw_textf(window.screen / 2 - {f32(score_width), window.screen.y / 5}, "%v", holding_score, scale = 2)
             case .Rolling:
                 render.draw_textf({20, 700}, "Rolling Time: %.0f%%", 100 * dice_rolling_time / DICE_ROLLING_TIME_LIMIT)
             }
@@ -298,9 +294,21 @@ main :: proc() {
                 render.draw_textf({20, 600}, "Hovered die pip: %v, %v", d.type, pip)
             }
 
+
             // The poor man's crosshair.
-            if cursor_hidden do render.draw_text(screen / 2, "o")
+            if cursor_hidden do render.draw_text(window.screen / 2, "O")
         }
+        if true {
+            render.draw_textf({1500, 880}, "%.2f ms",  window.fps_ms_per_frame)
+            render.draw_textf({500, 400}, "Testing testing", scale = 1)
+            render.draw_textf({500, 300}, "ABCDEFGHIJKLMNOPQRSTUV", scale = 0.8)
+            render.draw_textf({500, 200}, "abcdefghijklmnopqrstuv", scale = 0.8)
+            render.draw_textf({500, 100}, "1234567890", scale = 0.8)
+            // render.draw_text({50, 880}, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed curs\nus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Pr\naesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget \nnulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. \nCurabitur sodales ligula in libero. Sed dignissim lacinia nunc.\n\nCurabitur tortor. Pellentesque n\nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin \nut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, m\nassa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel\n, tincidunt sed, euismod in, nibh. Quisque volutpat condimentum velit. \n\nClass aptent taciti soci\nosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna\n non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilis\ni. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapi\nen. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus. Integer \neuismod lacus luctus magna. \n\nQuisque cursus, metus vitae pharetra auctor, sem massa mattis sem, \nat interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices\n posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi\n sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc,\n viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ul\ntrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi.\n Integer lacinia sollicitudin massa.\n\nCras metus. Sed aliquet risus a tortor. Integer id quam. Mo\nrbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin soda\nles libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales. Aenean lectus elit, fermentum non, convallis id, sagittis at, neque. Nullam mauris orci, aliquet et, iaculis et, viverra vitae, ligula.")
+            // render.draw_text({50, 400}, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed curs\nus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Pr\naesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget \nnulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. \nCurabitur sodales ligula in libero. Sed dignissim lacinia nunc.\n\nCurabitur tortor. Pellentesque n\nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin \nut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, m\nassa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel\n, tincidunt sed, euismod in, nibh. Quisque volutpat condimentum velit. \n\nClass aptent taciti soci\nosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna\n non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilis\ni. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapi\nen. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus. Integer \neuismod lacus luctus magna. \n\nQuisque cursus, metus vitae pharetra auctor, sem massa mattis sem, \nat interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices\n posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi\n sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc,\n viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ul\ntrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi.\n Integer lacinia sollicitudin massa.\n\nCras metus. Sed aliquet risus a tortor. Integer id quam. Mo\nrbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin soda\nles libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales. Aenean lectus elit, fermentum non, convallis id, sagittis at, neque. Nullam mauris orci, aliquet et, iaculis et, viverra vitae, ligula.")
+        }
+
+        render.flush_text()
 
         {
             // Draw mousepicking texture to screen.
@@ -414,7 +422,7 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
     }
 }
 
-mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
+mouse_callback :: proc "c" (w: glfw.WindowHandle, xpos, ypos: f64) {
 	context = runtime.default_context()
 
     if cursor_hidden {
@@ -424,7 +432,7 @@ mouse_callback :: proc "c" (window: glfw.WindowHandle, xpos, ypos: f64) {
 
     prev_mouse_coords = mouse_coords
     mouse_coords.x = f32(xpos)
-    mouse_coords.y = screen.y - f32(ypos)
+    mouse_coords.y = window.screen.y - f32(ypos)
     mouse_diff = mouse_coords - prev_mouse_coords
 }
 

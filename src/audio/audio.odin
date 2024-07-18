@@ -24,6 +24,8 @@ Clip :: struct { sound: ma.sound }
 // Flags :: bit_set[Flag]
 
 init :: proc()  {
+    if true do return // TODO: sound effects
+
     if result := ma.engine_init(nil, &engine); result != .SUCCESS {
         fmt.eprintln("Failed to init audio engine:", result)
     }
