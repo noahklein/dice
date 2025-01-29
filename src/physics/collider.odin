@@ -1,5 +1,6 @@
 package physics
 
+import rl "vendor:raylib"
 import glm "core:math/linalg/glsl"
 
 COLLIDER_MAX_VERTICES :: 8
@@ -12,10 +13,11 @@ Shape :: struct {
     vertex_count: int,
 }
 
-collider_vertices :: proc(id: ShapeID, verts: []glm.vec3) {
-    shapes[id].vertex_count = len(verts)
-    for v, i in verts {
-        shapes[id].vertices[i] = glm.vec3(v)
+collider_vertices :: proc(id: ShapeID, mesh: rl.Mesh) {
+    shapes[id].vertex_count = int(mesh.vertexCount)
+    for i in 0..<mesh.vertexCount {
+        shapes[id].vertices[i] = mesh.vertices[i]
+
     }
 }
 

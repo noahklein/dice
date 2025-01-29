@@ -4,10 +4,10 @@ import "base:runtime"
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "core:math/rand"
-import "core:strings"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
+import rl "vendor:raylib"
 
 import "assets"
 import "audio"
@@ -40,34 +40,12 @@ game_state: GameState
 GameState :: enum u8 { WorldMap, Farkle }
 
 main :: proc() {
-    if !glfw.Init() {
-        fmt.eprintln("Failed to initialize GLFW")
-        return
-    }
-    defer glfw.Terminate()
-    glfw.SetErrorCallback(error_callback)
+    // glfw.SetKeyCallback(window.id, window.key_callback)
+    // glfw.SetMouseButtonCallback(window.id, window.mouse_button_callback)
+    // glfw.SetCursorPosCallback(window.id, mouse_callback)
+    rl.InitWindow(1600, 900, "Dice")
 
-    window.id = glfw.CreateWindow(1600, 900, "Dice", nil, nil)
-    if window.id == nil {
-        fmt.eprintln("Failed to create window")
-        return
-    }
-    defer glfw.DestroyWindow(window.id)
-    glfw.MakeContextCurrent(window.id)
-
-    glfw.SetKeyCallback(window.id, window.key_callback)
-    glfw.SetMouseButtonCallback(window.id, window.mouse_button_callback)
-    glfw.SetCursorPosCallback(window.id, mouse_callback)
-    glfw.SwapInterval(0)
-
-    gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
-    gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-    gl.Enable(gl.DEPTH_TEST)
-    gl.DepthFunc(gl.LESS)
-    gl.Enable(gl.CULL_FACE)
-
-    assets.init()
+    // assets.init()
 
     shader, err := render.shader_load("src/shaders/cube.glsl")
     if err != nil {
@@ -76,7 +54,7 @@ main :: proc() {
     }
 
     // Load models for rendering and physics.
-    paths := [render.MeshId]string{
+    paths := [render.MeshId]cstring{
         .Cube = "assets/cube.obj",
         .Tetrahedron = "assets/tetrahedron.obj",
         .Octahedron = "assets/octahedron.obj",
@@ -85,21 +63,23 @@ main :: proc() {
         .Sphere = "assets/sphere.obj",
         .Quad = "assets/quad.obj",
     }
+    meshes := [render.MeshId]rl.Mesh{
+        .Cube = rl.GenMeshCube(1, 1, 1),
+        .Tetrahedron = rl.GenMeshPoly(1, 1),
+        .Octahedron = rl.GenMeshPoly(8, 1),
+        .Cone = rl.GenMeshCone(1, 1, 32),
+        .Cylinder = rl.GenMeshCylinder(1, 1, 32),
+        .Sphere = rl.GenMeshSphere(1, 32, 32),
+        .Quad = rl.GenMeshCube(1, 1, 1),
+    }
 
     for id in render.MeshId {
-        path := paths[id]
-        obj, err := render.load_obj(path)
-        if err != nil {
-            fmt.eprintfln("Failed to load mesh %q: %v", path, err)
-        }
-
-        render.renderer_init(id, obj)
-
+        mesh := meshes[id]
         // Set up collider shapes using model vertices.
         #partial switch id {
-        case .Cube:        physics.collider_vertices(.Box, obj.vertices[:])
-        case .Tetrahedron: physics.collider_vertices(.Tetrahedron, obj.vertices[:])
-        case .Octahedron:  physics.collider_vertices(.Octahedron, obj.vertices[:])
+        case .Cube:        physics.collider_vertices(.Box, mesh)
+        case .Tetrahedron: physics.collider_vertices(.Tetrahedron, mesh)
+        case .Octahedron:  physics.collider_vertices(.Octahedron, mesh)
         }
     }
     defer for id in render.MeshId do render.renderer_deinit(id)
